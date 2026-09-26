@@ -1,0 +1,38 @@
+# Environment & Secret Configurations (DO NOT COMMIT)
+.env
+.env.*
+.env.example
+*.env
+
+# Local database store & uploaded datasets
+.data/
+data/uploads/
+*.nc
+*.grib
+*.grib2
+
+# Python artifacts & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Virtual Environments
+venv/
+env/
+.venv/
+ENV/
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
