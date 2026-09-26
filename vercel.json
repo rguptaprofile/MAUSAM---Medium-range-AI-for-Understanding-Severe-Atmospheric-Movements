@@ -1,6 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
+  "functions": {
+    "api/**/*.py": {
+      "includeFiles": "backend/**",
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/docs",
