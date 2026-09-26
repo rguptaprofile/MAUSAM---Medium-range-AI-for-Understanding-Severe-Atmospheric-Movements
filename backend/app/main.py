@@ -1,0 +1,87 @@
+"""
+Main FastAPI Application Entrypoint for MAUSAM.
+Team Lunar - Smart India Hackathon 2026 (Problem Statement SIH26078).
+"""
+import logging
+import os
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+from .config import settings
+from .database.mongo import init_db_indexes, db
+from .api import forecast_router, alerts_router, analytics_router
+from .core.pipeline import MausamPipeline
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger("mausam.server")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup sequence
+    logger.info("Initializing MAUSAM AI System...")
+    init_db_indexes()
+    
+    # Check if database has any existing anomalies; if empty, pre-seed with Cyclone Amphan & Heatwave
+    if db.anomalies.count_documents({}) == 0:
+        logger.info("Database empty on startup. Pre-seeding baseline benchmark scenarios (Cyclone Amphan & Heatwave)...")
+        pipeline = MausamPipeline()
+        try:
+            pipeline.run_full_pipeline(scenario_type="cyclone_amphan")
+            pipeline.run_full_pipeline(scenario_type="north_india_heatwave")
+            logger.info("Baseline scenarios successfully seeded!")
+        except Exception as e:
+            logger.warning(f"Error seeding initial scenarios: {e}")
+            
+    yield
+    logger.info("Shutting down MAUSAM service.")
+
+app = FastAPI(
+    title="MAUSAM - Atmospheric Anomaly Tracking & Diffusion Downscaling API",
+    description="SIH 2026 (SIH26078) - Team Lunar: AI-driven Spatio-Temporal Tracking of Extreme Weather Anomalies in Medium-Range Forecasts (3-10 Days)",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS setup
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register API Routers
+app.include_router(forecast_router)
+app.include_router(alerts_router)
+app.include_router(analytics_router)
+
+# Mount Static Files directory for Dashboard UI
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+@app.get("/")
+def serve_dashboard():
+    index_file = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {
+        "project": "MAUSAM",
+        "description": "Medium-range AI for Understanding Severe Atmospheric Movements",
+        "team": "Team Lunar (ID: 170924)",
+        "docs": "/docs",
+        "status": "online"
+    }
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "system": settings.PROJECT_NAME,
+        "database": db.get_status()
+    }

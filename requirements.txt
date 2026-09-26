@@ -1,0 +1,17 @@
+# Project MAUSAM Dependencies
+# Medium-range AI for Understanding Severe Atmospheric Movements
+fastapi>=0.115.0
+uvicorn>=0.30.0
+pydantic>=2.8.0
+pydantic-settings>=2.4.0
+pymongo>=4.8.0
+numpy>=1.26.0
+scipy>=1.13.0
+torch>=2.2.0
+torchvision>=0.17.0
+networkx>=3.2.0
+shapely>=2.0.0
+matplotlib>=3.8.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+tqdm>=4.66.0

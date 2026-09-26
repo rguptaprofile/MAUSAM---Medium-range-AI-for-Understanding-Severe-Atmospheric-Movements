@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: mausam-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: mausam_db
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - mausam-net
+
+  mausam-api:
+    build: .
+    container_name: mausam-api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=mausam_db
+      - SPHERICAL_MESH_LEVEL=3
+      - DIFFUSION_STEPS=20
+      - PHYSICS_LOSS_WEIGHT=0.25
+    depends_on:
+      - mongodb
+    networks:
+      - mausam-net
+
+volumes:
+  mongo_data:
+
+networks:
+  mausam-net:
+    driver: bridge
