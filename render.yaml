@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: mausam-backend
+    runtime: python
+    buildCommand: bash render-build.sh
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    region: singapore
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: MONGODB_DB_NAME
+        value: mausam_db
+      - key: ENABLE_MONGO_LOCAL_FALLBACK
+        value: "true"
+      # You can override MONGODB_URI in Render dashboard settings with your MongoDB Atlas URI
+      - key: MONGODB_URI
+        sync: false
