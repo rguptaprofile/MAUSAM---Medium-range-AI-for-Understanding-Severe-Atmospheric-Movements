@@ -3,12 +3,12 @@ Integration tests for MAUSAM REST API.
 """
 import unittest
 from fastapi.testclient import TestClient
-from backend.app.main import app
+from backend.app.main import app as main_app
 from backend.app.database.mongo import db
 
 class TestMausamAPI(unittest.TestCase):
     def setUp(self):
-        self.client = TestClient(app)
+        self.client = TestClient(main_app)
 
     def test_health_check(self):
         response = self.client.get("/health")
