@@ -85,7 +85,7 @@ def setup_database():
     print("[3/4] Running end-to-end MAUSAM pipeline to seed benchmark scenarios...")
     pipeline = MausamPipeline()
 
-    scenarios = ["cyclone_amphan", "north_india_heatwave", "monsoon_cloudburst"]
+    scenarios = ["cyclone_amphan", "north_india_heatwave", "monsoon_cloudburst", "north_india_coldwave"]
     for scn in scenarios:
         print(f"  -> Ingesting, tracking, and downscaling scenario: {scn}...")
         res = pipeline.run_full_pipeline(scenario_type=scn)

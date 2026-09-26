@@ -93,8 +93,8 @@ class MausamPipeline:
             lat_mask = (nwp_data["lats"][:, 0] >= bbox["lat_min"]) & (nwp_data["lats"][:, 0] <= bbox["lat_max"])
             lon_mask = (nwp_data["lons"][0, :] >= bbox["lon_min"]) & (nwp_data["lons"][0, :] <= bbox["lon_max"])
             
-            # Extract variable for downscaling (precip for cyclones/downpours, t2m for heatwaves)
-            var_name = "temperature" if ano_dict["event_type"] == "HEATWAVE" else "precipitation"
+            # Extract variable for downscaling (precip for cyclones/downpours, t2m for heatwaves & coldwaves)
+            var_name = "temperature" if ano_dict["event_type"] in ["HEATWAVE", "COLD_WAVE"] else "precipitation"
             var_unit = "°C" if var_name == "temperature" else "mm/h"
             
             if var_name == "temperature":

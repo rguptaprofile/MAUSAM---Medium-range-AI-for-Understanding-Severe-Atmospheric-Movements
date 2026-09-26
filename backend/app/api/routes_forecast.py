@@ -20,7 +20,7 @@ def trigger_tracking_pipeline(scenario: str = Query("cyclone_amphan", descriptio
     4. Amplitude-preserving diffusion downscaling to 5km subgrid.
     5. MongoDB persistence.
     """
-    valid_scenarios = ["cyclone_amphan", "north_india_heatwave", "monsoon_cloudburst"]
+    valid_scenarios = ["cyclone_amphan", "north_india_heatwave", "monsoon_cloudburst", "north_india_coldwave"]
     if scenario not in valid_scenarios:
         raise HTTPException(status_code=400, detail=f"Invalid scenario. Choose from: {valid_scenarios}")
         

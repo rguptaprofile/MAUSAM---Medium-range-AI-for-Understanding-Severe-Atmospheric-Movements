@@ -203,10 +203,14 @@ class SphericalGNNAnomalyTracker(nn.Module):
             peak_wind = max(pt["max_wind_kmh"] for pt in lead_time_snapshots)
             peak_pr = max(pt["peak_precip_mmh"] for pt in lead_time_snapshots)
             peak_temp = max(pt["temperature_c"] for pt in lead_time_snapshots)
+            min_temp = min(pt["temperature_c"] for pt in lead_time_snapshots)
             
             if peak_wind > 80.0:
                 event_type = "CYCLONE"
                 name = "Severe Cyclonic Storm System"
+            elif min_temp < 6.0:
+                event_type = "COLD_WAVE"
+                name = "Severe Winter Cold Wave & Ground Frost"
             elif peak_temp > 43.0:
                 event_type = "HEATWAVE"
                 name = "Severe Synoptic Heat Dome"

@@ -95,6 +95,21 @@ class SyntheticMeteorologicalDataGenerator:
                 humidity[i] += 0.012 * burst_decay
                 mslp[i] -= 18.0 * burst_decay
 
+        elif scenario_type == "north_india_coldwave":
+            # Severe winter cold wave & ground frost anomaly over North/North-West India
+            center_lat, center_lon = 29.5, 75.8
+            for i, day in enumerate(lead_days):
+                dist_sq = (self.LATS - center_lat)**2 + (self.LONS - center_lon)**2
+                cold_decay = np.exp(-dist_sq / 16.0)
+                
+                # Arctic northerly continental surge: severe temperature plunge to ~2-4°C
+                t2m[i] -= (26.0 * cold_decay) # drops from 303K down to 275-277K (2-4 C)
+                mslp[i] += (14.0 * cold_decay) # intense winter high-pressure ridge (~1024 hPa)
+                v_wind[i] -= (18.0 * cold_decay) # strong northerly icy winds
+                u_wind[i] += (8.0 * cold_decay)
+                humidity[i] = np.maximum(0.002, humidity[i] * (1.0 - 0.75 * cold_decay)) # dry cold air
+                precip[i] = np.zeros_like(precip[i]) # clear frosty sky
+
         # Compute climatological percentile baseline (30-year ERA5 approximation)
         climatology_baseline = {
             "p50_precip": 1.2,
