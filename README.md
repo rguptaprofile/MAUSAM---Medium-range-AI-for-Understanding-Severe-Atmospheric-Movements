@@ -441,14 +441,66 @@ You can host the entire MAUSAM platform online **100% free** with zero credit ca
    ```
 7. Hugging Face builds the Docker container and serves your interactive dashboard globally on HTTPS (`https://<your-username>-mausam-ai.hf.space`) for **FREE with 16 GB RAM and 2 vCPUs**!
 
-### Alternative: Deploy on Render.com
+### Cloud Deployment Architecture: Two-Tier Production Setup
+
+Project MAUSAM is engineered with a modern, resilient **Two-Tier Cloud Architecture** optimized for free-tier performance and zero downtime:
+
+```
+┌──────────────────────────────────────────────┐
+│  Vercel Edge Global CDN                      │
+│  Frontend: https://mausam-predictor-ai.vercel.app
+│  - 0 ms cold start                           │
+│  - High-fidelity interactive benchmark state │
+│  - Automated /api/* proxy rewrites to Render │
+└──────────────────────┬───────────────────────┘
+                       │ HTTPS /api/
+                       ▼
+┌──────────────────────────────────────────────┐
+│  Render Cloud Container                      │
+│  Backend: https://mausam-backend.onrender.com │
+│  - FastAPI REST API + Swagger Docs (/docs)   │
+│  - Spherical GNN Anomaly Tracker             │
+│  - Conditional Diffusion Downscaler          │
+│  - Thermodynamic Physics-Informed Guardrails │
+└──────────────────────┬───────────────────────┘
+                       │ PyMongo 2dsphere
+                       ▼
+┌──────────────────────────────────────────────┐
+│  MongoDB Atlas (M0 Free Tier)                │
+│  - 4D Anomaly tracks & bounding boxes        │
+│  - 5 km subgrid tensor arrays                │
+│  - GeoJSON spatial alerts & NDRF subscriptions│
+└──────────────────────────────────────────────┘
+```
+
+#### Tier 1: Frontend Deployment on Vercel
+1. Link your GitHub repository in your [Vercel Dashboard](https://vercel.com/).
+2. Framework Preset: **Other** (Pure static site).
+3. Root Directory: `./` (or leave default).
+4. Vercel automatically deploys the static dashboard directly to its global Edge CDN:
+   - Deployed URL: **`https://mausam-predictor-ai.vercel.app`**
+   - Instant loading with **0 ms cold start**.
+   - `vercel.json` automatically proxies `/api/*`, `/health`, and `/docs` to the Render backend, eliminating cross-origin (CORS) hurdles.
+   - Built-in dynamic backend configuration modal allows pointing to any custom Render URL on the fly.
+   - Embedded high-fidelity benchmark datasets guarantee the map, 3–10 day time scrubber, and spectral downscaling canvases render instantly even while the free-tier backend spins up.
+
+#### Tier 2: AI Backend Deployment on Render.com
 1. Sign up for free at [Render.com](https://render.com/).
-2. Click **New +** -> **Web Service** -> Connect GitHub repository.
-3. Environment: `Python 3` or `Docker`.
-4. Build Command: `pip install -r requirements.txt`.
-5. Start Command: `python run_server.py`.
-6. Add Environment Variable: `PORT = 8000` and `MONGODB_URI`.
-7. Click **Create Web Service** -> Live in 3 minutes!
+2. Click **New +** -> **Web Service** -> Connect this GitHub repository.
+3. Configure settings (or let Render automatically read `render.yaml`):
+   - **Name**: `mausam-backend` (Generates `https://mausam-backend.onrender.com`)
+   - **Environment**: `Python 3`
+   - **Region**: `Singapore` (or closest to India)
+   - **Branch**: `main`
+   - **Build Command**: `bash render-build.sh` (Installs lightweight CPU-only PyTorch, preventing OOM crashes)
+   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. Add Environment Variables:
+   - `APP_ENV`: `production`
+   - `PYTHON_VERSION`: `3.11.9`
+   - `ENABLE_MONGO_LOCAL_FALLBACK`: `true`
+   - `MONGODB_URI`: `<Your MongoDB Atlas Connection String>` (Optional; embedded storage fallback active if omitted)
+   - `MONGODB_DB_NAME`: `mausam_db`
+5. Click **Create Web Service**. Render builds the service and exposes the live API and interactive Swagger docs at `https://mausam-backend.onrender.com/docs`.
 
 ---
 

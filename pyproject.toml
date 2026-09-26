@@ -4,6 +4,3 @@ version = "1.0.0"
 description = "MAUSAM: Medium-range AI for Understanding Severe Atmospheric Movements"
 readme = "README.md"
 requires-python = ">=3.10"
-
-[tool.vercel]
-entrypoint = "backend.app.main:app"

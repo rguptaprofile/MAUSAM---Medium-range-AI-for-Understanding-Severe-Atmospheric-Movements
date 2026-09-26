@@ -4,6 +4,7 @@ Team Lunar - Smart India Hackathon 2026 (Problem Statement SIH26078).
 """
 import logging
 import os
+import threading
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,23 +20,28 @@ from .core.pipeline import MausamPipeline
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("mausam.server")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup sequence
-    logger.info("Initializing MAUSAM AI System...")
-    init_db_indexes()
-    
-    # Check if database has any existing anomalies; if empty, pre-seed with Cyclone Amphan & Heatwave
-    if db.anomalies.count_documents({}) == 0:
-        logger.info("Database empty on startup. Pre-seeding baseline benchmark scenarios (Cyclone Amphan & Heatwave)...")
-        pipeline = MausamPipeline()
-        try:
+def _seed_benchmarks_background():
+    """Seeds baseline benchmark scenarios in background without blocking server startup."""
+    try:
+        if db.anomalies.count_documents({}) == 0:
+            logger.info("Database empty on startup. Pre-seeding baseline benchmark scenarios (Cyclone Amphan & Heatwave)...")
+            pipeline = MausamPipeline()
             pipeline.run_full_pipeline(scenario_type="cyclone_amphan")
             pipeline.run_full_pipeline(scenario_type="north_india_heatwave")
-            logger.info("Baseline scenarios successfully seeded!")
-        except Exception as e:
-            logger.warning(f"Error seeding initial scenarios: {e}")
-            
+            logger.info("Baseline scenarios successfully seeded in background!")
+    except Exception as e:
+        logger.warning(f"Background scenario seeding notice: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup sequence: Instant non-blocking execution
+    logger.info("Initializing MAUSAM AI System...")
+    try:
+        init_db_indexes()
+    except Exception as e:
+        logger.warning(f"Database index initialization notice: {e}")
+        
+    threading.Thread(target=_seed_benchmarks_background, daemon=True).start()
     yield
     logger.info("Shutting down MAUSAM service.")
 
@@ -46,7 +52,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS setup
+# CORS setup for web frontend and deployed Vercel domains
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

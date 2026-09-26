@@ -1,19 +1,22 @@
 {
   "version": 2,
-  "builds": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "main.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/backend/app/static/$1"
+      "source": "/api/:path*",
+      "destination": "https://mausam-backend.onrender.com/api/:path*"
     },
     {
-      "src": "/(.*)",
-      "dest": "/main.py"
+      "source": "/health",
+      "destination": "https://mausam-backend.onrender.com/health"
+    },
+    {
+      "source": "/docs",
+      "destination": "https://mausam-backend.onrender.com/docs"
+    },
+    {
+      "source": "/openapi.json",
+      "destination": "https://mausam-backend.onrender.com/openapi.json"
     }
   ]
 }

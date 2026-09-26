@@ -12,7 +12,8 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
-  <!-- Custom CSS -->
+  <!-- Custom CSS (works with both root and static path) -->
+  <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
@@ -33,19 +34,36 @@
       </div>
       
       <div class="header-controls">
+        <!-- Backend API Connection Pill -->
+        <div class="status-pill clickable-pill" id="backend-status-pill" title="Click to view or change Backend API URL">
+          <span class="status-dot green" id="backend-status-dot"></span>
+          <span id="backend-status-text">Backend: Connecting...</span>
+        </div>
+
         <div class="status-pill" id="db-status-pill">
           <span class="status-dot green"></span>
           <span id="db-status-text">MongoDB: Connected</span>
         </div>
+        
         <div class="status-pill" id="physics-status-pill">
           <i class="fa-solid fa-shield-halved text-cyan"></i>
           <span>Physics Guardrails: <strong id="physics-pct">98.4%</strong></span>
         </div>
+        
         <button class="btn btn-primary" id="btn-run-pipeline">
           <i class="fa-solid fa-play"></i> Run Live Pipeline
         </button>
       </div>
     </header>
+
+    <!-- Render Free-Tier Wake-Up Alert Banner -->
+    <div id="render-wake-banner" class="wake-banner hidden">
+      <div class="wake-banner-content">
+        <i class="fa-solid fa-cloud-arrow-up fa-bounce text-cyan"></i>
+        <span><b>Render Cloud Backend is waking up</b> (free tier sleeps after 15m inactivity, spins up in ~30s). High-fidelity interactive benchmark dataset is active.</span>
+      </div>
+      <button class="banner-close" id="btn-close-banner" title="Dismiss">&times;</button>
+    </div>
 
     <!-- Main Content Area -->
     <main class="main-content">
@@ -99,174 +117,139 @@
               <span id="lead-day-display">Day 3.0 (72h Forecast)</span>
               <span class="text-muted" id="trajectory-status">Dynamic Tracking</span>
             </div>
-            <input type="range" id="time-slider" min="3.0" max="10.0" step="1.0" value="3.0" />
-            <div class="tick-marks">
-              <span>D3</span><span>D4</span><span>D5</span><span>D6</span><span>D7</span><span>D8</span><span>D9</span><span>D10</span>
+            <input type="range" id="time-slider" min="3.0" max="10.0" step="0.5" value="3.0" class="slider" />
+            <div class="slider-ticks">
+              <span>Day 3</span>
+              <span>Day 5</span>
+              <span>Day 7</span>
+              <span>Day 10</span>
             </div>
           </div>
         </div>
 
-        <!-- Active Threat Alerts Feed -->
-        <div class="panel-section alerts-container">
+        <!-- Active Anomaly Telemetry Card -->
+        <div class="panel-section flex-grow">
           <div class="section-title">
-            <i class="fa-solid fa-triangle-exclamation text-danger"></i>
-            <h3>Active Spatial Alerts</h3>
-            <span class="count-badge" id="alert-count">0</span>
+            <i class="fa-solid fa-chart-line"></i>
+            <h3>Tracked 4D Anomaly</h3>
           </div>
-          <div class="alert-feed" id="alert-feed-list">
-            <!-- Dynamic alerts inserted via JS -->
-            <div class="loading-placeholder">Loading alerts...</div>
+          <div class="anomaly-card" id="active-anomaly-card">
+            <div class="anomaly-header">
+              <h4 id="anomaly-name">Super Cyclonic Storm AMPHAN</h4>
+              <span class="badge-danger" id="anomaly-efi">EFI: 0.98</span>
+            </div>
+            <p class="anomaly-category" id="anomaly-category">Type: Tropical Cyclone</p>
+            <div class="meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">Horizon</span>
+                <span class="meta-val" id="anomaly-horizon">Day 3.0 - 10.0</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">4D BBox</span>
+                <span class="meta-val" id="anomaly-bbox">12.0°N, 84.0°E</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Central Intensity</span>
+                <span class="meta-val" id="anomaly-intensity">72 m/s | 920 hPa</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Tracking GNN</span>
+                <span class="meta-val text-cyan">Icosahedral Spherical Mesh</span>
+              </div>
+            </div>
           </div>
         </div>
       </aside>
 
-      <!-- Center: Geospatial Visualization & Downscaling Inspector -->
+      <!-- Center: Geospatial Map -->
       <section class="center-stage">
-        <!-- Interactive Map Container -->
-        <div class="map-card">
-          <div class="map-header">
-            <div class="map-indicators">
-              <span class="indicator-item"><i class="fa-solid fa-circle text-danger"></i> 5 km Centroid Impact Zone</span>
-              <span class="indicator-item"><i class="fa-solid fa-route text-cyan"></i> GNN Trajectory (Icosahedral Mesh)</span>
-              <span class="indicator-item"><i class="fa-solid fa-layer-group text-warning"></i> 4D Macro Bounding Box</span>
+        <div class="map-container" id="map-container">
+          <div id="leaflet-map"></div>
+          
+          <!-- Map Overlay Legend -->
+          <div class="map-legend">
+            <h4>Spatio-Temporal Layers</h4>
+            <div class="legend-row">
+              <span class="legend-dot" style="background: #00d2ff;"></span>
+              <span>Predicted Anomaly Trajectory (3–10 Days)</span>
             </div>
-            <div class="map-actions">
-              <button class="btn-sm" id="btn-recenter"><i class="fa-solid fa-crosshairs"></i> Center India</button>
-              <button class="btn-sm" id="btn-toggle-geojson"><i class="fa-solid fa-download"></i> View GeoJSON</button>
+            <div class="legend-row">
+              <span class="legend-dot" style="background: #ff3b5c;"></span>
+              <span>Pinpoint Centroid & 5 km Threat Radius</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-box" style="border-color: #ffb800;"></span>
+              <span>Macroscale Bounding Box (GNN Isolation)</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-dot" style="background: #00e676;"></span>
+              <span>NDRF Rapid Response Zone</span>
             </div>
           </div>
-          <div id="leaflet-map"></div>
+
+          <!-- Quick Map Actions -->
+          <div class="map-floating-controls">
+            <button class="btn btn-icon" id="btn-recenter" title="Recenter Anomaly"><i class="fa-solid fa-crosshairs"></i></button>
+            <button class="btn btn-icon" id="btn-toggle-geojson" title="Export GeoJSON"><i class="fa-solid fa-file-code"></i></button>
+          </div>
         </div>
 
-        <!-- Lower Inspector: Spectral Smoothing vs Diffusion Downscaling -->
-        <div class="comparison-card">
-          <div class="comparison-header">
-            <div>
-              <h4><i class="fa-solid fa-microchip"></i> Stage-2 Diffusion vs Traditional CNN Smoothing</h4>
-              <p class="text-sm">Demonstrating resolution shift (12 km -> 5 km) and extreme amplitude retention</p>
+        <!-- Spectral Smoothing Comparison Strip (Stage 2 Diffusion Engine) -->
+        <div class="spectral-strip">
+          <div class="strip-header">
+            <div class="strip-title">
+              <i class="fa-solid fa-atom text-cyan"></i>
+              <h4>Stage 2 Generative Diffusion: Extreme Amplitude Preservation (12 km &rarr; 5 km)</h4>
             </div>
-            <div class="metrics-pill-group">
-              <div class="metric-pill">
-                <span>Coarse 12km Peak:</span>
-                <strong id="metric-coarse">-</strong>
-              </div>
-              <div class="metric-pill danger">
-                <span>Standard CNN (Smoothed):</span>
-                <strong id="metric-cnn">-</strong>
-              </div>
-              <div class="metric-pill success">
-                <span>MAUSAM Diffusion (Preserved):</span>
-                <strong id="metric-diffusion">-</strong>
-              </div>
-              <div class="metric-pill highlight">
-                <span>Amplitude Gain:</span>
-                <strong id="metric-gain">-</strong>
-              </div>
+            <div class="strip-badges">
+              <span class="badge-outline">No Spectral Smoothing</span>
+              <span class="badge-outline">Physics Guaranteed</span>
             </div>
           </div>
+          
+          <div class="canvases-container">
+            <!-- Box 1: Coarse 12km NWP -->
+            <div class="canvas-box">
+              <span class="canvas-tag">Input 12 km Coarse NWP (NEPS-G)</span>
+              <canvas id="canvas-coarse" width="180" height="90"></canvas>
+              <span class="canvas-caption">Coarse pixel grid &bull; Loss of localized gradients</span>
+            </div>
 
-          <div class="grid-display-row">
-            <!-- Canvas 1: 12 km Coarse Grid -->
-            <div class="grid-subcard">
-              <div class="subcard-title">12 km NCMRWF Ensemble Slice</div>
-              <canvas id="canvas-coarse" width="160" height="160"></canvas>
-              <div class="grid-stat">Coarse Resolution (Macroscale)</div>
+            <i class="fa-solid fa-arrow-right-long text-muted"></i>
+
+            <!-- Box 2: Conventional CNN/U-Net (Blurred) -->
+            <div class="canvas-box">
+              <span class="canvas-tag tag-bad">Conventional CNN / U-Net (MSE Loss)</span>
+              <canvas id="canvas-cnn" width="180" height="90"></canvas>
+              <span class="canvas-caption text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Spectral Smoothing (-42% peak amplitude)</span>
             </div>
-            <!-- Arrow -->
-            <div class="flow-arrow">
-              <i class="fa-solid fa-arrow-right"></i>
-            </div>
-            <!-- Canvas 2: CNN Smoothed (Failure Case) -->
-            <div class="grid-subcard">
-              <div class="subcard-title text-danger">Standard CNN / U-Net (Smoothed)</div>
-              <canvas id="canvas-cnn" width="160" height="160"></canvas>
-              <div class="grid-stat text-danger"><i class="fa-solid fa-xmark"></i> Extreme Peaks Erased by MSE</div>
-            </div>
-            <!-- Arrow -->
-            <div class="flow-arrow">
-              <i class="fa-solid fa-arrow-right"></i>
-            </div>
-            <!-- Canvas 3: Diffusion Model (MAUSAM) -->
-            <div class="grid-subcard highlight-box">
-              <div class="subcard-title text-cyan">MAUSAM 5 km Conditional Diffusion</div>
-              <canvas id="canvas-diffusion" width="160" height="160"></canvas>
-              <div class="grid-stat text-success"><i class="fa-solid fa-check"></i> True Amplitude Peak Retained</div>
+
+            <i class="fa-solid fa-arrow-right-long text-muted"></i>
+
+            <!-- Box 3: MAUSAM Conditional Diffusion (Preserved) -->
+            <div class="canvas-box highlight-box">
+              <span class="canvas-tag tag-good">MAUSAM Diffusion Downscaling (5 km)</span>
+              <canvas id="canvas-diffusion" width="180" height="90"></canvas>
+              <span class="canvas-caption text-success"><i class="fa-solid fa-circle-check"></i> 95.8% Extreme Peak Retention</span>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Right Panel: Telemetry, Physics Loss & NDRF Deployment -->
+      <!-- Right Panel: NDRF Dispatch & Spatial Alert Feed -->
       <aside class="sidebar-right">
-        <!-- Physics Constraints Real-time Monitor -->
-        <div class="panel-section">
+        <!-- Active Alerts Feed -->
+        <div class="panel-section flex-grow">
           <div class="section-title">
-            <i class="fa-solid fa-atom text-cyan"></i>
-            <h3>Physics Conservation Laws</h3>
+            <i class="fa-solid fa-bell text-danger"></i>
+            <h3>Spatial Alerts Feed (<span id="alert-count">0</span>)</h3>
           </div>
-          <div class="physics-card">
-            <div class="law-item">
-              <div class="law-header">
-                <span>Moisture Continuity Convergence</span>
-                <span class="badge-success">VALIDATED</span>
-              </div>
-              <div class="law-formula">\nabla \cdot (\mathbf{v} q) + \partial q / \partial t \approx P - E</div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill" style="width: 96%"></div>
-              </div>
-            </div>
-
-            <div class="law-item">
-              <div class="law-header">
-                <span>Geostrophic Balance Check</span>
-                <span class="badge-success">VALIDATED</span>
-              </div>
-              <div class="law-formula">\mathbf{v}_g = f^{-1} (\mathbf{k} \times \nabla \Phi)</div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill" style="width: 94%"></div>
-              </div>
-            </div>
-
-            <div class="law-item">
-              <div class="law-header">
-                <span>Non-Negativity Barrier</span>
-                <span class="badge-success">100% COMPLIANT</span>
-              </div>
-              <div class="law-formula">P \ge 0, \quad q \ge 0</div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill" style="width: 100%"></div>
-              </div>
-            </div>
+          <div class="alert-feed-list" id="alert-feed-list">
+            <!-- Dynamically populated -->
           </div>
         </div>
 
-        <!-- Spherical Icosahedral Mesh Telemetry -->
-        <div class="panel-section">
-          <div class="section-title">
-            <i class="fa-solid fa-globe"></i>
-            <h3>Spherical Mesh Architecture</h3>
-          </div>
-          <div class="mesh-stats-grid">
-            <div class="mesh-stat-box">
-              <span class="stat-value">642</span>
-              <span class="stat-label">Geodesic Nodes</span>
-            </div>
-            <div class="mesh-stat-box">
-              <span class="stat-value">1,280</span>
-              <span class="stat-label">Mesh Triangles</span>
-            </div>
-            <div class="mesh-stat-box">
-              <span class="stat-value">1,920</span>
-              <span class="stat-label">Message Edges</span>
-            </div>
-            <div class="mesh-stat-box">
-              <span class="stat-value">0%</span>
-              <span class="stat-label">Polar Distortion</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- NDRF Direct Tactical Deployment Console -->
+        <!-- NDRF First Responder Target -->
         <div class="panel-section">
           <div class="section-title">
             <i class="fa-solid fa-truck-medical text-warning"></i>
@@ -288,9 +271,42 @@
     </main>
   </div>
 
+  <!-- Backend Configuration Modal -->
+  <div id="backend-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-server text-cyan"></i>
+          <h3>Backend API Configuration</h3>
+        </div>
+        <button class="modal-close" id="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm text-muted">
+          MAUSAM's two-tier architecture runs the interactive console on <b>Vercel Edge CDN</b> and the AI inference engine on <b>Render Cloud</b>.
+        </p>
+        <div class="form-group">
+          <label for="backend-url-input">Backend Base URL:</label>
+          <input type="text" id="backend-url-input" class="form-input" placeholder="https://mausam-backend.onrender.com" />
+          <small class="text-muted">Default: <code>https://mausam-backend.onrender.com</code> (or <code>http://localhost:8000</code> for local dev)</small>
+        </div>
+        <div class="modal-status-box" id="modal-ping-status">
+          Status: Ready to test connection
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-ping-backend">
+          <i class="fa-solid fa-network-wired"></i> Test Connection
+        </button>
+        <button class="btn btn-secondary" id="btn-reset-backend">Reset Default</button>
+        <button class="btn btn-primary" id="btn-save-backend">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Application JS -->
-  <script src="/static/app.js"></script>
+  <!-- Application JS (works with both root and static path) -->
+  <script src="app.js"></script>
 </body>
 </html>
