@@ -1,6 +1,8 @@
 [project]
-name = "mausam"
+name = "mausam-ai"
 version = "1.0.0"
-description = "MAUSAM: Medium-range AI for Understanding Severe Atmospheric Movements"
-readme = "README.md"
-requires-python = ">=3.10"
+description = "Medium-range AI for Understanding Severe Atmospheric Movements"
+requires-python = ">=3.11"
+
+[tool.vercel]
+entrypoint = "api/index.py:app"

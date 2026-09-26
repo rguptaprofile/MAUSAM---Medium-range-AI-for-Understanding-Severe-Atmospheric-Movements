@@ -1,7 +1,7 @@
 """
 Vercel Serverless Function Entrypoint for MAUSAM.
 Exposes FastAPI application, OpenAPI schema, Swagger docs (/docs),
-and real-time live satellite/NWP streaming directly on Vercel via Mangum adapter.
+and real-time live satellite/NWP streaming directly on Vercel.
 """
 import os
 import sys
@@ -12,8 +12,4 @@ for p in [root_dir, os.getcwd()]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from mangum import Mangum
 from backend.app.main import app
-
-# Vercel AWS Lambda Serverless Handler
-handler = Mangum(app, lifespan="off")
