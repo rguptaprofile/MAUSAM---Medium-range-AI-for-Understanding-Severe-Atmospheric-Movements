@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAUSAM - AI Atmospheric Anomaly Tracking & Diffusion Downscaling</title>
+  
+  <!-- FontAwesome & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="logo-box">
+          <i class="fa-solid fa-wind brand-icon"></i>
+        </div>
+        <div>
+          <div class="title-row">
+            <h1>MAUSAM</h1>
+            <span class="badge-tagline">AI Atmospheric Tracking Core</span>
+          </div>
+          <p class="subtitle">Medium-range AI for Understanding Severe Atmospheric Movements (3–10 Days)</p>
+        </div>
+      </div>
+      
+      <div class="header-controls">
+        <div class="status-pill" id="db-status-pill">
+          <span class="status-dot green"></span>
+          <span id="db-status-text">MongoDB: Connected</span>
+        </div>
+        <div class="status-pill" id="physics-status-pill">
+          <i class="fa-solid fa-shield-halved text-cyan"></i>
+          <span>Physics Guardrails: <strong id="physics-pct">98.4%</strong></span>
+        </div>
+        <button class="btn btn-primary" id="btn-run-pipeline">
+          <i class="fa-solid fa-play"></i> Run Live Pipeline
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Left Panel: Control & Active Anomalies -->
+      <aside class="sidebar-left">
+        <div class="panel-section">
+          <div class="section-title">
+            <i class="fa-solid fa-sliders"></i>
+            <h3>Simulation Scenarios</h3>
+          </div>
+          <div class="scenario-buttons">
+            <button class="scenario-btn active" data-scenario="cyclone_amphan">
+              <i class="fa-solid fa-hurricane"></i>
+              <div>
+                <strong>Cyclone Amphan</strong>
+                <small>Bay of Bengal Super Cyclone</small>
+              </div>
+            </button>
+            <button class="scenario-btn" data-scenario="north_india_heatwave">
+              <i class="fa-solid fa-temperature-arrow-up"></i>
+              <div>
+                <strong>North India Heatwave</strong>
+                <small>Rajasthan/Delhi 47°C Ridge</small>
+              </div>
+            </button>
+            <button class="scenario-btn" data-scenario="monsoon_cloudburst">
+              <i class="fa-solid fa-cloud-showers-heavy"></i>
+              <div>
+                <strong>Monsoon Cloudburst</strong>
+                <small>Western Ghats Orographic Deluge</small>
+              </div>
+            </button>
+            <button class="scenario-btn" data-scenario="north_india_coldwave">
+              <i class="fa-solid fa-snowflake"></i>
+              <div>
+                <strong>North India Cold Wave</strong>
+                <small>Punjab/Haryana Ground Frost</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Trajectory Time Scrubber -->
+        <div class="panel-section">
+          <div class="section-title">
+            <i class="fa-solid fa-timeline"></i>
+            <h3>Medium-Range Horizon (3-10 Days)</h3>
+          </div>
+          <div class="time-scrubber-box">
+            <div class="time-label-row">
+              <span id="lead-day-display">Day 3.0 (72h Forecast)</span>
+              <span class="text-muted" id="trajectory-status">Dynamic Tracking</span>
+            </div>
+            <input type="range" id="time-slider" min="3.0" max="10.0" step="1.0" value="3.0" />
+            <div class="tick-marks">
+              <span>D3</span><span>D4</span><span>D5</span><span>D6</span><span>D7</span><span>D8</span><span>D9</span><span>D10</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Threat Alerts Feed -->
+        <div class="panel-section alerts-container">
+          <div class="section-title">
+            <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+            <h3>Active Spatial Alerts</h3>
+            <span class="count-badge" id="alert-count">0</span>
+          </div>
+          <div class="alert-feed" id="alert-feed-list">
+            <!-- Dynamic alerts inserted via JS -->
+            <div class="loading-placeholder">Loading alerts...</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center: Geospatial Visualization & Downscaling Inspector -->
+      <section class="center-stage">
+        <!-- Interactive Map Container -->
+        <div class="map-card">
+          <div class="map-header">
+            <div class="map-indicators">
+              <span class="indicator-item"><i class="fa-solid fa-circle text-danger"></i> 5 km Centroid Impact Zone</span>
+              <span class="indicator-item"><i class="fa-solid fa-route text-cyan"></i> GNN Trajectory (Icosahedral Mesh)</span>
+              <span class="indicator-item"><i class="fa-solid fa-layer-group text-warning"></i> 4D Macro Bounding Box</span>
+            </div>
+            <div class="map-actions">
+              <button class="btn-sm" id="btn-recenter"><i class="fa-solid fa-crosshairs"></i> Center India</button>
+              <button class="btn-sm" id="btn-toggle-geojson"><i class="fa-solid fa-download"></i> View GeoJSON</button>
+            </div>
+          </div>
+          <div id="leaflet-map"></div>
+        </div>
+
+        <!-- Lower Inspector: Spectral Smoothing vs Diffusion Downscaling -->
+        <div class="comparison-card">
+          <div class="comparison-header">
+            <div>
+              <h4><i class="fa-solid fa-microchip"></i> Stage-2 Diffusion vs Traditional CNN Smoothing</h4>
+              <p class="text-sm">Demonstrating resolution shift (12 km -> 5 km) and extreme amplitude retention</p>
+            </div>
+            <div class="metrics-pill-group">
+              <div class="metric-pill">
+                <span>Coarse 12km Peak:</span>
+                <strong id="metric-coarse">-</strong>
+              </div>
+              <div class="metric-pill danger">
+                <span>Standard CNN (Smoothed):</span>
+                <strong id="metric-cnn">-</strong>
+              </div>
+              <div class="metric-pill success">
+                <span>MAUSAM Diffusion (Preserved):</span>
+                <strong id="metric-diffusion">-</strong>
+              </div>
+              <div class="metric-pill highlight">
+                <span>Amplitude Gain:</span>
+                <strong id="metric-gain">-</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-display-row">
+            <!-- Canvas 1: 12 km Coarse Grid -->
+            <div class="grid-subcard">
+              <div class="subcard-title">12 km NCMRWF Ensemble Slice</div>
+              <canvas id="canvas-coarse" width="160" height="160"></canvas>
+              <div class="grid-stat">Coarse Resolution (Macroscale)</div>
+            </div>
+            <!-- Arrow -->
+            <div class="flow-arrow">
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+            <!-- Canvas 2: CNN Smoothed (Failure Case) -->
+            <div class="grid-subcard">
+              <div class="subcard-title text-danger">Standard CNN / U-Net (Smoothed)</div>
+              <canvas id="canvas-cnn" width="160" height="160"></canvas>
+              <div class="grid-stat text-danger"><i class="fa-solid fa-xmark"></i> Extreme Peaks Erased by MSE</div>
+            </div>
+            <!-- Arrow -->
+            <div class="flow-arrow">
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+            <!-- Canvas 3: Diffusion Model (MAUSAM) -->
+            <div class="grid-subcard highlight-box">
+              <div class="subcard-title text-cyan">MAUSAM 5 km Conditional Diffusion</div>
+              <canvas id="canvas-diffusion" width="160" height="160"></canvas>
+              <div class="grid-stat text-success"><i class="fa-solid fa-check"></i> True Amplitude Peak Retained</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Telemetry, Physics Loss & NDRF Deployment -->
+      <aside class="sidebar-right">
+        <!-- Physics Constraints Real-time Monitor -->
+        <div class="panel-section">
+          <div class="section-title">
+            <i class="fa-solid fa-atom text-cyan"></i>
+            <h3>Physics Conservation Laws</h3>
+          </div>
+          <div class="physics-card">
+            <div class="law-item">
+              <div class="law-header">
+                <span>Moisture Continuity Convergence</span>
+                <span class="badge-success">VALIDATED</span>
+              </div>
+              <div class="law-formula">\nabla \cdot (\mathbf{v} q) + \partial q / \partial t \approx P - E</div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: 96%"></div>
+              </div>
+            </div>
+
+            <div class="law-item">
+              <div class="law-header">
+                <span>Geostrophic Balance Check</span>
+                <span class="badge-success">VALIDATED</span>
+              </div>
+              <div class="law-formula">\mathbf{v}_g = f^{-1} (\mathbf{k} \times \nabla \Phi)</div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: 94%"></div>
+              </div>
+            </div>
+
+            <div class="law-item">
+              <div class="law-header">
+                <span>Non-Negativity Barrier</span>
+                <span class="badge-success">100% COMPLIANT</span>
+              </div>
+              <div class="law-formula">P \ge 0, \quad q \ge 0</div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: 100%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spherical Icosahedral Mesh Telemetry -->
+        <div class="panel-section">
+          <div class="section-title">
+            <i class="fa-solid fa-globe"></i>
+            <h3>Spherical Mesh Architecture</h3>
+          </div>
+          <div class="mesh-stats-grid">
+            <div class="mesh-stat-box">
+              <span class="stat-value">642</span>
+              <span class="stat-label">Geodesic Nodes</span>
+            </div>
+            <div class="mesh-stat-box">
+              <span class="stat-value">1,280</span>
+              <span class="stat-label">Mesh Triangles</span>
+            </div>
+            <div class="mesh-stat-box">
+              <span class="stat-value">1,920</span>
+              <span class="stat-label">Message Edges</span>
+            </div>
+            <div class="mesh-stat-box">
+              <span class="stat-value">0%</span>
+              <span class="stat-label">Polar Distortion</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- NDRF Direct Tactical Deployment Console -->
+        <div class="panel-section">
+          <div class="section-title">
+            <i class="fa-solid fa-truck-medical text-warning"></i>
+            <h3>NDRF First Responder Action</h3>
+          </div>
+          <div class="ndrf-box" id="ndrf-action-box">
+            <p class="text-sm">Pinpoint coordinates provide hyper-local targeting, eliminating alert fatigue.</p>
+            <div class="target-coord-card">
+              <div>Target Centroid: <strong id="ndrf-coords">Searching...</strong></div>
+              <div>Affected Sector: <span id="ndrf-districts">-</span></div>
+            </div>
+            <button class="btn btn-warning full-width" id="btn-dispatch-ndrf">
+              <i class="fa-solid fa-paper-plane"></i> Authorize Tactical Dispatch
+            </button>
+            <div class="dispatch-log" id="dispatch-status-msg"></div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Application JS -->
+  <script src="/static/app.js"></script>
+</body>
+</html>
