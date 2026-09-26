@@ -133,9 +133,15 @@ class DatabaseManager:
         self.connect()
 
     def connect(self):
+        # On Vercel, if MONGODB_URI is pointing to localhost, immediately use local store without timeout
+        if os.environ.get("VERCEL") and ("localhost" in settings.MONGODB_URI or "127.0.0.1" in settings.MONGODB_URI):
+            logger.info("Serverless environment detected without external MongoDB Atlas URI. Activating embedded local store.")
+            self._init_fallback_collections()
+            return
+
         try:
             logger.info(f"Connecting to MongoDB at {settings.MONGODB_URI} (db: {settings.MONGODB_DB_NAME})...")
-            self.client = MongoClient(settings.MONGODB_URI, serverSelectionTimeoutMS=2000)
+            self.client = MongoClient(settings.MONGODB_URI, serverSelectionTimeoutMS=1000)
             self.client.admin.command("ping")
             self.db = self.client[settings.MONGODB_DB_NAME]
             self.is_connected = True

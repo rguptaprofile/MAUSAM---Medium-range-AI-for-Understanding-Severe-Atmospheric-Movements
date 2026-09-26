@@ -22,6 +22,9 @@ logger = logging.getLogger("mausam.server")
 
 def _seed_benchmarks_background():
     """Seeds baseline benchmark scenarios in background without blocking server startup."""
+    # Never run heavy simulation pipelines in short-lived serverless environments like Vercel
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return
     try:
         if db.anomalies.count_documents({}) == 0:
             logger.info("Database empty on startup. Pre-seeding baseline benchmark scenarios (Cyclone Amphan & Heatwave)...")
