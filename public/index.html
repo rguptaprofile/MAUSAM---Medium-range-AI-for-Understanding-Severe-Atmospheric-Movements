@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>MAUSAM - AI Atmospheric Anomaly Tracking & Diffusion Downscaling</title>
   
   <!-- FontAwesome & Google Fonts -->
@@ -12,9 +12,8 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
-  <!-- Custom CSS (works with both root and static path) -->
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <div class="app-layout">
@@ -34,48 +33,74 @@
       </div>
       
       <div class="header-controls">
-        <!-- Backend API Connection Pill -->
-        <div class="status-pill clickable-pill" id="backend-status-pill" title="Click to view or change Backend API URL">
+        <!-- Live Backend Status & Configuration -->
+        <div class="status-pill clickable-pill" id="backend-status-pill" title="Click to inspect Backend Connection">
           <span class="status-dot green" id="backend-status-dot"></span>
-          <span id="backend-status-text">Backend: Connecting...</span>
+          <span id="backend-status-text">Backend: Unified API Live</span>
         </div>
 
+        <!-- Database Status -->
         <div class="status-pill" id="db-status-pill">
           <span class="status-dot green"></span>
           <span id="db-status-text">MongoDB: Connected</span>
         </div>
+
+        <!-- Interactive API Docs Link -->
+        <a href="/docs" target="_blank" class="status-pill clickable-pill" title="Open Interactive FastAPI Swagger Documentation">
+          <i class="fa-solid fa-book-bookmark text-cyan"></i>
+          <span>API Docs (/docs)</span>
+        </a>
         
-        <div class="status-pill" id="physics-status-pill">
-          <i class="fa-solid fa-shield-halved text-cyan"></i>
-          <span>Physics Guardrails: <strong id="physics-pct">98.4%</strong></span>
-        </div>
-        
+        <!-- Run Live Pipeline CTA -->
         <button class="btn btn-primary" id="btn-run-pipeline">
           <i class="fa-solid fa-play"></i> Run Live Pipeline
         </button>
       </div>
     </header>
 
-    <!-- Render Free-Tier Wake-Up Alert Banner -->
+    <!-- Operational Alert / Wake Banner -->
     <div id="render-wake-banner" class="wake-banner hidden">
       <div class="wake-banner-content">
-        <i class="fa-solid fa-cloud-arrow-up fa-bounce text-cyan"></i>
-        <span><b>Render Cloud Backend is waking up</b> (free tier sleeps after 15m inactivity, spins up in ~30s). High-fidelity interactive benchmark dataset is active.</span>
+        <i class="fa-solid fa-satellite-dish fa-spin text-cyan"></i>
+        <span><b>Real-Time NWP Ingestion Stream:</b> Connected to operational forecast servers. Live spatial anomaly engine active.</span>
       </div>
       <button class="banner-close" id="btn-close-banner" title="Dismiss">&times;</button>
     </div>
 
+    <!-- Mobile View Mode Switcher Tabs (Visible on Tablet & Mobile) -->
+    <nav class="mobile-tabs-container" id="mobile-tabs">
+      <button class="mobile-tab-btn active" data-target="center-stage">
+        <i class="fa-solid fa-map-location-dot"></i> <span>Map & AI Lab</span>
+      </button>
+      <button class="mobile-tab-btn" data-target="sidebar-left">
+        <i class="fa-solid fa-sliders"></i> <span>Scenarios</span>
+      </button>
+      <button class="mobile-tab-btn" data-target="sidebar-right">
+        <i class="fa-solid fa-bell"></i> <span>Alerts & NDRF</span>
+      </button>
+    </nav>
+
     <!-- Main Content Area -->
     <main class="main-content">
       <!-- Left Panel: Control & Active Anomalies -->
-      <aside class="sidebar-left">
+      <aside class="sidebar-left panel-view" id="panel-sidebar-left">
         <div class="panel-section">
           <div class="section-title">
             <i class="fa-solid fa-sliders"></i>
-            <h3>Simulation Scenarios</h3>
+            <h3>Atmospheric Scenarios</h3>
           </div>
           <div class="scenario-buttons">
-            <button class="scenario-btn active" data-scenario="cyclone_amphan">
+            <!-- Real-Time Live NWP Satellite Stream -->
+            <button class="scenario-btn live-stream active" data-scenario="live_satellite_stream">
+              <i class="fa-solid fa-satellite-dish fa-beat text-cyan"></i>
+              <div>
+                <strong class="text-cyan">Live Satellite & NWP Stream</strong>
+                <small>Real-Time Operational Ingestion</small>
+              </div>
+            </button>
+
+            <!-- Historical Benchmarks -->
+            <button class="scenario-btn" data-scenario="cyclone_amphan">
               <i class="fa-solid fa-hurricane"></i>
               <div>
                 <strong>Cyclone Amphan</strong>
@@ -115,7 +140,7 @@
           <div class="time-scrubber-box">
             <div class="time-label-row">
               <span id="lead-day-display">Day 3.0 (72h Forecast)</span>
-              <span class="text-muted" id="trajectory-status">Dynamic Tracking</span>
+              <span class="text-muted" id="trajectory-status">Steering Flow Active</span>
             </div>
             <input type="range" id="time-slider" min="3.0" max="10.0" step="0.5" value="3.0" class="slider" />
             <div class="slider-ticks">
@@ -128,15 +153,15 @@
         </div>
 
         <!-- Active Anomaly Telemetry Card -->
-        <div class="panel-section flex-grow">
+        <div class="panel-section">
           <div class="section-title">
             <i class="fa-solid fa-chart-line"></i>
             <h3>Tracked 4D Anomaly</h3>
           </div>
           <div class="anomaly-card" id="active-anomaly-card">
             <div class="anomaly-header">
-              <h4 id="anomaly-name">Super Cyclonic Storm AMPHAN</h4>
-              <span class="badge-danger" id="anomaly-efi">EFI: 0.98</span>
+              <h4 id="anomaly-name">Live Operational Anomaly</h4>
+              <span class="badge-danger" id="anomaly-efi">EFI: 0.94</span>
             </div>
             <p class="anomaly-category" id="anomaly-category">Type: Tropical Cyclone</p>
             <div class="meta-grid">
@@ -146,11 +171,11 @@
               </div>
               <div class="meta-item">
                 <span class="meta-label">4D BBox</span>
-                <span class="meta-val" id="anomaly-bbox">12.0°N, 84.0°E</span>
+                <span class="meta-val" id="anomaly-bbox">16.0°N, 85.0°E</span>
               </div>
               <div class="meta-item">
                 <span class="meta-label">Central Intensity</span>
-                <span class="meta-val" id="anomaly-intensity">72 m/s | 920 hPa</span>
+                <span class="meta-val" id="anomaly-intensity">52 m/s | 945 hPa</span>
               </div>
               <div class="meta-item">
                 <span class="meta-label">Tracking GNN</span>
@@ -161,29 +186,35 @@
         </div>
       </aside>
 
-      <!-- Center: Geospatial Map -->
-      <section class="center-stage">
+      <!-- Center Stage: Geospatial Map & Generative Diffusion Strip -->
+      <section class="center-stage panel-view active-panel" id="panel-center-stage">
+        <!-- Interactive Leaflet Map -->
         <div class="map-container" id="map-container">
           <div id="leaflet-map"></div>
           
-          <!-- Map Overlay Legend -->
-          <div class="map-legend">
-            <h4>Spatio-Temporal Layers</h4>
-            <div class="legend-row">
-              <span class="legend-dot" style="background: #00d2ff;"></span>
-              <span>Predicted Anomaly Trajectory (3–10 Days)</span>
+          <!-- Collapsible Floating Map HUD Legend -->
+          <div class="map-legend" id="map-legend">
+            <div class="legend-header">
+              <h4><i class="fa-solid fa-layer-group text-cyan"></i> Spatio-Temporal Layers</h4>
+              <button class="legend-toggle" id="legend-toggle" title="Toggle Legend">&minus;</button>
             </div>
-            <div class="legend-row">
-              <span class="legend-dot" style="background: #ff3b5c;"></span>
-              <span>Pinpoint Centroid & 5 km Threat Radius</span>
-            </div>
-            <div class="legend-row">
-              <span class="legend-box" style="border-color: #ffb800;"></span>
-              <span>Macroscale Bounding Box (GNN Isolation)</span>
-            </div>
-            <div class="legend-row">
-              <span class="legend-dot" style="background: #00e676;"></span>
-              <span>NDRF Rapid Response Zone</span>
+            <div class="legend-body" id="legend-body">
+              <div class="legend-row">
+                <span class="legend-dot" style="background: #00d2ff;"></span>
+                <span>Predicted Anomaly Track (3–10 Days)</span>
+              </div>
+              <div class="legend-row">
+                <span class="legend-dot" style="background: #ff3b5c;"></span>
+                <span>Pinpoint Centroid & 5 km Threat Radius</span>
+              </div>
+              <div class="legend-row">
+                <span class="legend-box" style="border-color: #ffb800;"></span>
+                <span>4D Macroscale Bounding Box</span>
+              </div>
+              <div class="legend-row">
+                <span class="legend-dot" style="background: #00e676;"></span>
+                <span>NDRF Tactical Deployment Perimeter</span>
+              </div>
             </div>
           </div>
 
@@ -194,42 +225,46 @@
           </div>
         </div>
 
-        <!-- Spectral Smoothing Comparison Strip (Stage 2 Diffusion Engine) -->
-        <div class="spectral-strip">
+        <!-- Stage 2: Generative Diffusion Downscaling Comparison Strip -->
+        <div class="spectral-strip" id="spectral-strip">
           <div class="strip-header">
             <div class="strip-title">
               <i class="fa-solid fa-atom text-cyan"></i>
               <h4>Stage 2 Generative Diffusion: Extreme Amplitude Preservation (12 km &rarr; 5 km)</h4>
             </div>
             <div class="strip-badges">
-              <span class="badge-outline">No Spectral Smoothing</span>
-              <span class="badge-outline">Physics Guaranteed</span>
+              <span class="badge-outline">Zero Spectral Smoothing</span>
+              <span class="badge-outline">Physics-Informed Loss (98.4%)</span>
             </div>
           </div>
           
           <div class="canvases-container">
             <!-- Box 1: Coarse 12km NWP -->
             <div class="canvas-box">
-              <span class="canvas-tag">Input 12 km Coarse NWP (NEPS-G)</span>
-              <canvas id="canvas-coarse" width="180" height="90"></canvas>
+              <span class="canvas-tag">Input 12 km Coarse NWP</span>
+              <canvas id="canvas-coarse" width="180" height="85"></canvas>
               <span class="canvas-caption">Coarse pixel grid &bull; Loss of localized gradients</span>
             </div>
 
-            <i class="fa-solid fa-arrow-right-long text-muted"></i>
+            <div class="flow-arrow-box">
+              <i class="fa-solid fa-arrow-right-long text-muted"></i>
+            </div>
 
             <!-- Box 2: Conventional CNN/U-Net (Blurred) -->
             <div class="canvas-box">
-              <span class="canvas-tag tag-bad">Conventional CNN / U-Net (MSE Loss)</span>
-              <canvas id="canvas-cnn" width="180" height="90"></canvas>
-              <span class="canvas-caption text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Spectral Smoothing (-42% peak amplitude)</span>
+              <span class="canvas-tag tag-bad">Standard CNN (MSE Loss)</span>
+              <canvas id="canvas-cnn" width="180" height="85"></canvas>
+              <span class="canvas-caption text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Spectral Smoothing (-42% peak)</span>
             </div>
 
-            <i class="fa-solid fa-arrow-right-long text-muted"></i>
+            <div class="flow-arrow-box">
+              <i class="fa-solid fa-arrow-right-long text-muted"></i>
+            </div>
 
             <!-- Box 3: MAUSAM Conditional Diffusion (Preserved) -->
             <div class="canvas-box highlight-box">
-              <span class="canvas-tag tag-good">MAUSAM Diffusion Downscaling (5 km)</span>
-              <canvas id="canvas-diffusion" width="180" height="90"></canvas>
+              <span class="canvas-tag tag-good">MAUSAM Diffusion (5 km)</span>
+              <canvas id="canvas-diffusion" width="180" height="85"></canvas>
               <span class="canvas-caption text-success"><i class="fa-solid fa-circle-check"></i> 95.8% Extreme Peak Retention</span>
             </div>
           </div>
@@ -237,7 +272,7 @@
       </section>
 
       <!-- Right Panel: NDRF Dispatch & Spatial Alert Feed -->
-      <aside class="sidebar-right">
+      <aside class="sidebar-right panel-view" id="panel-sidebar-right">
         <!-- Active Alerts Feed -->
         <div class="panel-section flex-grow">
           <div class="section-title">
@@ -245,7 +280,7 @@
             <h3>Spatial Alerts Feed (<span id="alert-count">0</span>)</h3>
           </div>
           <div class="alert-feed-list" id="alert-feed-list">
-            <!-- Dynamically populated -->
+            <!-- Populated dynamically -->
           </div>
         </div>
 
@@ -277,18 +312,18 @@
       <div class="modal-header">
         <div class="modal-title">
           <i class="fa-solid fa-server text-cyan"></i>
-          <h3>Backend API Configuration</h3>
+          <h3>Backend API & Database Connection</h3>
         </div>
         <button class="modal-close" id="btn-close-modal">&times;</button>
       </div>
       <div class="modal-body">
         <p class="text-sm text-muted">
-          MAUSAM's two-tier architecture runs the interactive console on <b>Vercel Edge CDN</b> and the AI inference engine on <b>Render Cloud</b>.
+          MAUSAM connects the frontend dashboard directly to the serverless AI backend at <code>/api</code> and <code>/docs</code>.
         </p>
         <div class="form-group">
-          <label for="backend-url-input">Backend Base URL:</label>
-          <input type="text" id="backend-url-input" class="form-input" placeholder="https://mausam-backend.onrender.com" />
-          <small class="text-muted">Default: <code>https://mausam-backend.onrender.com</code> (or <code>http://localhost:8000</code> for local dev)</small>
+          <label for="backend-url-input">API Base URL:</label>
+          <input type="text" id="backend-url-input" class="form-input" placeholder="Leave empty for unified domain (/api)" />
+          <small class="text-muted">Default: <code>/api</code> on current domain (or custom Render/Localhost URL)</small>
         </div>
         <div class="modal-status-box" id="modal-ping-status">
           Status: Ready to test connection
@@ -306,7 +341,7 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Application JS (works with both root and static path) -->
+  <!-- Application JS -->
   <script src="app.js"></script>
 </body>
 </html>

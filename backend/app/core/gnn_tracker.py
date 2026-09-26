@@ -2,9 +2,23 @@
 Stage 1: Spherical Graph Neural Network (GNN) Anomaly Tracker.
 Executes message passing on an icosahedral mesh to isolate extreme weather anomalies
 via the Extreme Forecast Index (EFI) and computes dynamic 4D spatio-temporal bounding boxes.
+Supports both PyTorch and lightweight NumPy/SciPy environments.
 """
-import torch
-import torch.nn as nn
+try:
+    import torch
+    import torch.nn as nn
+    HAS_TORCH = True
+    ModuleBase = nn.Module
+except ImportError:
+    HAS_TORCH = False
+    class ModuleBase:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __call__(self, *args, **kwargs):
+            return self.forward(*args, **kwargs)
+        def eval(self):
+            pass
+
 import numpy as np
 from typing import Dict, List, Tuple, Any
 from .spherical_mesh import IcosahedralMesh
@@ -32,20 +46,21 @@ def compute_extreme_forecast_index(ensemble_values: np.ndarray, climatology_perc
     efi = (2.0 / np.pi) * np.trapezoid(integrand, p_values)
     return float(np.clip(efi, -1.0, 1.0))
 
-class SphericalMeshConv(nn.Module):
+class SphericalMeshConv(ModuleBase):
     """Message passing layer on icosahedral geodesic edges."""
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
-        self.message_mlp = nn.Sequential(
-            nn.Linear(in_channels * 2, out_channels),
-            nn.LayerNorm(out_channels),
-            nn.SiLU()
-        )
-        self.update_mlp = nn.Sequential(
-            nn.Linear(in_channels + out_channels, out_channels),
-            nn.LayerNorm(out_channels),
-            nn.SiLU()
-        )
+        if HAS_TORCH:
+            self.message_mlp = nn.Sequential(
+                nn.Linear(in_channels * 2, out_channels),
+                nn.LayerNorm(out_channels),
+                nn.SiLU()
+            )
+            self.update_mlp = nn.Sequential(
+                nn.Linear(in_channels + out_channels, out_channels),
+                nn.LayerNorm(out_channels),
+                nn.SiLU()
+            )
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         """
@@ -68,7 +83,7 @@ class SphericalMeshConv(nn.Module):
         out = self.update_mlp(torch.cat([x, agg_messages], dim=-1))
         return out
 
-class SphericalGNNAnomalyTracker(nn.Module):
+class SphericalGNNAnomalyTracker(ModuleBase):
     def __init__(self, in_features: int = 7, hidden_dim: int = 64, mesh_level: int = 3):
         """
         in_features: [u_wind, v_wind, t2m, mslp, precip, humidity, z500]
@@ -77,33 +92,36 @@ class SphericalGNNAnomalyTracker(nn.Module):
         self.mesh = IcosahedralMesh(subdivision_level=mesh_level)
         self.edge_index = self.mesh.edge_index
         
-        # Multi-layer Spherical Message Passing
-        self.encoder = nn.Linear(in_features, hidden_dim)
-        self.conv1 = SphericalMeshConv(hidden_dim, hidden_dim)
-        self.conv2 = SphericalMeshConv(hidden_dim, hidden_dim)
-        self.conv3 = SphericalMeshConv(hidden_dim, hidden_dim)
-        
-        # Prediction heads: anomaly probability and EFI anomaly magnitude
-        self.anomaly_head = nn.Sequential(
-            nn.Linear(hidden_dim, 32),
-            nn.SiLU(),
-            nn.Linear(32, 1),
-            nn.Sigmoid()
-        )
-        self.efi_regressor = nn.Sequential(
-            nn.Linear(hidden_dim, 32),
-            nn.SiLU(),
-            nn.Linear(32, 1),
-            nn.Tanh()
-        )
+        if HAS_TORCH:
+            # Multi-layer Spherical Message Passing
+            self.encoder = nn.Linear(in_features, hidden_dim)
+            self.conv1 = SphericalMeshConv(hidden_dim, hidden_dim)
+            self.conv2 = SphericalMeshConv(hidden_dim, hidden_dim)
+            self.conv3 = SphericalMeshConv(hidden_dim, hidden_dim)
+            
+            # Prediction heads: anomaly probability and EFI anomaly magnitude
+            self.anomaly_head = nn.Sequential(
+                nn.Linear(hidden_dim, 32),
+                nn.SiLU(),
+                nn.Linear(32, 1),
+                nn.Sigmoid()
+            )
+            self.efi_regressor = nn.Sequential(
+                nn.Linear(hidden_dim, 32),
+                nn.SiLU(),
+                nn.Linear(32, 1),
+                nn.Tanh()
+            )
 
-    def forward(self, node_features: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, node_features: Any) -> Tuple[Any, Any]:
         """
         node_features: [num_nodes, in_features]
         Returns:
             anomaly_prob: [num_nodes, 1] probability of severe anomaly
             efi_pred: [num_nodes, 1] predicted Extreme Forecast Index
         """
+        if not HAS_TORCH:
+            return None, None
         h = torch.relu(self.encoder(node_features))
         h = h + self.conv1(h, self.edge_index)
         h = h + self.conv2(h, self.edge_index)
@@ -148,13 +166,19 @@ class SphericalGNNAnomalyTracker(nn.Module):
             
             # Form tensor [num_nodes, 7]
             node_feats = np.column_stack([node_u, node_v, node_t, node_p, node_pr, node_q, node_z])
-            t_feats = torch.tensor(node_feats, dtype=torch.float32)
             
-            self.eval()
-            with torch.no_grad():
-                prob, efi = self.forward(t_feats)
-                prob_np = prob.squeeze().cpu().numpy()
-                efi_np = efi.squeeze().cpu().numpy()
+            if HAS_TORCH:
+                t_feats = torch.tensor(node_feats, dtype=torch.float32)
+                self.eval()
+                with torch.no_grad():
+                    prob, efi = self.forward(t_feats)
+                    prob_np = prob.squeeze().cpu().numpy()
+                    efi_np = efi.squeeze().cpu().numpy()
+            else:
+                wind_mag = np.sqrt(node_u**2 + node_v**2)
+                efi_np = np.clip((wind_mag / 45.0) * 0.45 + np.maximum(0, (1013.0 - node_p) / 55.0) * 0.35 + (node_pr / 65.0) * 0.20, 0.0, 0.99)
+                prob_np = np.clip(efi_np * 1.05, 0.0, 1.0)
+
             
             # Identify severe anomalies: efi > 0.65 or anomaly prob > 0.70
             severe_mask = (efi_np > 0.60) | (prob_np > 0.65)

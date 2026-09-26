@@ -118,3 +118,50 @@ def process_real_data_file(file_path: str = Query("data/sample_real_neps_g.nc"))
         "anomalies_detected": len(result["anomalies"]),
         "data": result
     }
+
+from ..core.live_nwp_service import live_nwp_service
+
+@router.get("/live-satellite-stream")
+def get_live_satellite_stream(
+    region: str = Query("bay_of_bengal", description="Sector: bay_of_bengal, arabian_sea, delhi_ncr, western_ghats, odisha_coast"),
+    lat: Optional[float] = Query(None, description="Custom latitude"),
+    lon: Optional[float] = Query(None, description="Custom longitude")
+) -> Dict[str, Any]:
+    """
+    Fetches real-time operational NWP and satellite atmospheric stream (Open-Meteo / ECMWF / GFS),
+    computes EFI extreme deviations, tracks trajectory, and stores in MongoDB.
+    """
+    live_anomaly = live_nwp_service.fetch_live_ensemble(region_key=region, custom_lat=lat, custom_lon=lon)
+    
+    # Save to MongoDB
+    db.anomalies.update_one(
+        {"anomaly_id": live_anomaly["anomaly_id"]},
+        {"$set": live_anomaly},
+        upsert=True
+    )
+    
+    # Generate live spatial alert for NDRF
+    first_wp = live_anomaly["trajectory"][0]
+    alert_doc = {
+        "alert_id": f"alert_{live_anomaly['anomaly_id']}",
+        "anomaly_id": live_anomaly["anomaly_id"],
+        "severity": "SEVERE" if live_anomaly["max_efi"] > 0.85 else "MODERATE",
+        "headline": f"Live NWP Satellite Alert: {live_anomaly['name']}",
+        "description": f"Real-time operational forecast detected {live_anomaly['category']} anomaly with EFI {live_anomaly['max_efi']}. Steering flow tracking active.",
+        "centroid_lat": first_wp["lat"],
+        "centroid_lon": first_wp["lon"],
+        "radius_km": 5.0,
+        "affected_districts": [live_anomaly["region"].split("(")[0].strip(), "Adjacent Coastal / Interior Sector"],
+        "active": True,
+        "created_at": live_anomaly["timestamp"]
+    }
+    db.alerts.update_one({"alert_id": alert_doc["alert_id"]}, {"$set": alert_doc}, upsert=True)
+    
+    return {
+        "status": "success",
+        "live_stream": True,
+        "source": live_anomaly["source"],
+        "anomaly": live_anomaly,
+        "alert": alert_doc
+    }
+
