@@ -3,26 +3,25 @@
   "cleanUrls": true,
   "functions": {
     "api/**/*.py": {
-      "includeFiles": "backend/**",
-      "maxDuration": 30
+      "includeFiles": "backend/**"
     }
   },
   "rewrites": [
     {
       "source": "/docs",
-      "destination": "/api/index.py"
+      "destination": "/api/index"
     },
     {
       "source": "/openapi.json",
-      "destination": "/api/index.py"
+      "destination": "/api/index"
     },
     {
       "source": "/health",
-      "destination": "/api/index.py"
+      "destination": "/api/index"
     },
     {
       "source": "/api/:path*",
-      "destination": "/api/index.py"
+      "destination": "/api/index"
     }
   ]
 }
