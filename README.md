@@ -1,22 +1,13 @@
 # MAUSAM: Medium-range AI for Understanding Severe Atmospheric Movements
 
-[![Smart India Hackathon 2026](https://img.shields.io/badge/SIH-2026-orange.svg)](https://sih.gov.in/)
-[![Problem Statement ID](https://img.shields.io/badge/PS_ID-SIH26078-blue.svg)](#problem-statement)
-[![Team Lunar](https://img.shields.io/badge/Team-Lunar_%23170924-green.svg)](#team-details)
-[![AI Architecture](https://img.shields.io/badge/Architecture-Spherical_GNN_%2B_Conditional_Diffusion-purple.svg)](#technical-architecture)
+[![AI Architecture](https://img.shields.io/badge/Architecture-Spherical_GNN_%2B_Conditional_Diffusion-purple.svg)](#3-technical-architecture--methodology)
 [![Physics Guardrails](https://img.shields.io/badge/Physics_Loss-Thermodynamic_Guaranteed-cyan.svg)](#physics-informed-loss-constraints)
-[![Database](https://img.shields.io/badge/Database-MongoDB_%2B_2dsphere_Indexing-brightgreen.svg)](#mongodb-setup--schema-architecture)
+[![Database](https://img.shields.io/badge/Database-MongoDB_Atlas_%2B_2dsphere-brightgreen.svg)](#4-mongodb-integration--setup-guide-local--atlas-free-tier)
+[![Operational Lead Time](https://img.shields.io/badge/Lead_Time-3_to_10_Days-blue.svg)](#2-proposed-solution-the-mausam-paradigm)
+[![Downscaling Resolution](https://img.shields.io/badge/Resolution-12km_to_5km_Subgrid-orange.svg)](#stage-2-amplitude-preserving-generative-diffusion-downscaling)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
-
-## 🏆 Smart India Hackathon 2026 Submission
-- **Problem Statement ID**: `SIH26078`
-- **Problem Statement Title**: **AI-Driven Spatio-Temporal Tracking of Extreme Weather Anomalies in Medium-Range Forecasts**
-- **Theme**: Smart Automation
-- **Category**: Software
-- **Team ID**: `170924`
-- **Team Name**: **Team Lunar**
-- **Idea Title**: **MAUSAM** (Medium-range AI for Understanding Severe Atmospheric Movements)
+> **Next-Generation Spatio-Temporal AI for Continuous Tracking of Extreme Weather Anomalies (Cyclones, Heat Domes, Cold Waves & Cloudbursts) in Medium-Range Forecasts (3 to 10 Days) with Amplitude-Preserving Generative Diffusion Downscaling (12 km $\to$ 5 km).**
 
 ---
 

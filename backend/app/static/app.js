@@ -27,11 +27,10 @@ function initMap() {
     zoomControl: true
   });
 
-  // Dark matter basemap
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 19
+  // Clean dark matter basemap (no watermark / free public GIS tile service)
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; Esri &mdash; National Geographic, DeLorme, NAVTEQ',
+    maxZoom: 16
   }).addTo(map);
 
   trajectoryLayerGroup = L.layerGroup().addTo(map);
