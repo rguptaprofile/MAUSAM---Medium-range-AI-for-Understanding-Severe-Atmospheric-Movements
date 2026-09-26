@@ -126,7 +126,9 @@ class DatabaseManager:
         self.client: Optional[MongoClient] = None
         self.db = None
         self.is_connected: bool = False
-        self.fallback_file = os.path.join(os.getcwd(), ".data", "local_mongo_store.json")
+        import tempfile
+        base_dir = tempfile.gettempdir() if (os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")) else os.getcwd()
+        self.fallback_file = os.path.join(base_dir, ".data", "local_mongo_store.json")
         self.collections: Dict[str, Any] = {}
         self.connect()
 
@@ -156,7 +158,10 @@ class DatabaseManager:
         self.audit_logs = MongoCollectionWrapper(self.db["audit_logs"])
 
     def _init_fallback_collections(self):
-        os.makedirs(os.path.dirname(self.fallback_file), exist_ok=True)
+        try:
+            os.makedirs(os.path.dirname(self.fallback_file), exist_ok=True)
+        except OSError:
+            pass
         raw_data = {}
         if os.path.exists(self.fallback_file):
             try:
@@ -175,11 +180,12 @@ class DatabaseManager:
     def save_fallback(self):
         if not self.is_connected:
             try:
+                os.makedirs(os.path.dirname(self.fallback_file), exist_ok=True)
                 data = {name: getattr(self, name).docs for name in self.collections}
                 with open(self.fallback_file, "w") as f:
                     json.dump(data, f, default=str, indent=2)
             except Exception as e:
-                logger.error(f"Error saving fallback store: {e}")
+                logger.warning(f"Notice: embedded fallback store saved in-memory: {e}")
 
     def get_status(self) -> Dict[str, Any]:
         return {

@@ -5,7 +5,10 @@ Processes actual NetCDF (.nc) and GRIB2 files from:
 - ECMWF Open Data / ERA5 Reanalysis
 - IMDAA Regional Reanalysis
 """
-import xarray as xr
+try:
+    import xarray as xr
+except ImportError:
+    xr = None
 import numpy as np
 import os
 import logging
@@ -23,6 +26,9 @@ class RealAtmosphericDataLoader:
         Reads a standard meteorological NetCDF file using Xarray and normalizes variables
         into the format expected by MAUSAM's Spherical GNN and Diffusion pipeline.
         """
+        if xr is None:
+            raise ImportError("xarray and netCDF4 are required for reading NetCDF datasets. Install via: pip install xarray netCDF4")
+
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"NetCDF file not found at: {file_path}")
 

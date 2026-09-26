@@ -3,10 +3,22 @@ Icosahedral Spherical Mesh Module for MAUSAM.
 Eliminates pole singularities and planar distortion by mapping atmospheric fields onto a spherical geodesic graph.
 """
 import numpy as np
-import torch
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    TORCH_AVAILABLE = False
+
+try:
+    import networkx as nx
+    NETWORKX_AVAILABLE = True
+except ImportError:
+    nx = None
+    NETWORKX_AVAILABLE = False
+
 from scipy.spatial import KDTree
-import networkx as nx
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Any, Optional
 
 class IcosahedralMesh:
     def __init__(self, subdivision_level: int = 3, radius: float = 6371.0):
@@ -96,8 +108,8 @@ class IcosahedralMesh:
         z = np.sin(phi)
         return np.column_stack([x, y, z])
 
-    def _build_edge_index(self) -> torch.Tensor:
-        """Build bidirectional edge connections for PyTorch message passing."""
+    def _build_edge_index(self):
+        """Build bidirectional edge connections for GNN message passing."""
         edges = set()
         for face in self.faces:
             for i in range(3):
@@ -107,10 +119,19 @@ class IcosahedralMesh:
         edge_list = list(edges)
         u_nodes = [e[0] for e in edge_list]
         v_nodes = [e[1] for e in edge_list]
-        return torch.tensor([u_nodes, v_nodes], dtype=torch.long)
+        if TORCH_AVAILABLE and torch is not None:
+            return torch.tensor([u_nodes, v_nodes], dtype=torch.long)
+        return np.array([u_nodes, v_nodes], dtype=np.int64)
 
-    def _build_networkx_graph(self) -> nx.Graph:
+    def _build_networkx_graph(self):
         """Construct NetworkX graph representing the spherical mesh connectivity."""
+        if not NETWORKX_AVAILABLE or nx is None:
+            adj = {i: [] for i in range(self.num_nodes)}
+            for face in self.faces:
+                for i in range(3):
+                    u, v = int(face[i]), int(face[(i + 1) % 3])
+                    adj[u].append(v)
+            return adj
         G = nx.Graph()
         for i in range(self.num_nodes):
             G.add_node(i, lat=float(self.lats[i]), lon=float(self.lons[i]))

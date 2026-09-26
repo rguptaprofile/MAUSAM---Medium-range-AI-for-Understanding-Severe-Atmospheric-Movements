@@ -13,8 +13,8 @@ python -m pip install --upgrade pip setuptools wheel
 echo "--> [2/3] Installing lightweight CPU-only PyTorch (prevents 2.5GB CUDA memory crash)..."
 python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-echo "--> [3/3] Installing remaining dependencies from requirements.txt..."
-python -m pip install -r requirements.txt
+echo "--> [3/3] Installing remaining dependencies from requirements-full.txt..."
+python -m pip install -r requirements-full.txt
 
 echo "=========================================="
 echo "  MAUSAM BACKEND: RENDER BUILD COMPLETE!"

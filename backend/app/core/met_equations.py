@@ -8,7 +8,10 @@ Conforms to MetPy and WMO atmospheric physics standards:
 - Extreme Forecast Index (Anderson-Darling tail weighting)
 """
 import numpy as np
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
 from typing import Dict, Any, Tuple
 
 # Physical Atmospheric Constants

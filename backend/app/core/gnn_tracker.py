@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Stage 1: Spherical Graph Neural Network (GNN) Anomaly Tracker.
 Executes message passing on an icosahedral mesh to isolate extreme weather anomalies
@@ -9,7 +10,9 @@ try:
     import torch.nn as nn
     HAS_TORCH = True
     ModuleBase = nn.Module
-except ImportError:
+except (ImportError, Exception):
+    torch = None
+    nn = None
     HAS_TORCH = False
     class ModuleBase:
         def __init__(self, *args, **kwargs):
