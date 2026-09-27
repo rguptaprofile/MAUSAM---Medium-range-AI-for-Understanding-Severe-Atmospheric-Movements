@@ -13,3 +13,6 @@ for p in [root_dir, os.getcwd()]:
         sys.path.insert(0, p)
 
 from backend.app.main import app
+
+# Alias for serverless runtime handlers
+handler = app

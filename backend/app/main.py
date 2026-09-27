@@ -103,3 +103,19 @@ def health_check():
         "system": settings.PROJECT_NAME,
         "database": db.get_status()
     }
+
+@app.get("/api")
+@app.get("/api/index")
+def api_index():
+    return {
+        "status": "online",
+        "system": settings.PROJECT_NAME,
+        "version": "1.2.0",
+        "docs": "/docs",
+        "endpoints": {
+            "v1": "/api/v1",
+            "health": "/health",
+            "status": "/api/v1/system/status"
+        }
+    }
+
