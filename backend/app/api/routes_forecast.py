@@ -125,13 +125,19 @@ from ..core.live_nwp_service import live_nwp_service
 def get_live_satellite_stream(
     region: str = Query("bay_of_bengal", description="Sector: bay_of_bengal, arabian_sea, delhi_ncr, western_ghats, odisha_coast"),
     lat: Optional[float] = Query(None, description="Custom latitude"),
-    lon: Optional[float] = Query(None, description="Custom longitude")
+    lon: Optional[float] = Query(None, description="Custom longitude"),
+    use_external_benchmark: bool = Query(False, description="Whether to query external point benchmark instead of primary NEPS-G")
 ) -> Dict[str, Any]:
     """
-    Fetches real-time operational NWP and satellite atmospheric stream (Open-Meteo / ECMWF / GFS),
+    Fetches operational NWP stream (NCMRWF NEPS-G 12 km by default, or labeled external benchmark),
     computes EFI extreme deviations, tracks trajectory, and stores in MongoDB.
     """
-    live_anomaly = live_nwp_service.fetch_live_ensemble(region_key=region, custom_lat=lat, custom_lon=lon)
+    live_anomaly = live_nwp_service.fetch_live_ensemble(
+        region_key=region, 
+        custom_lat=lat, 
+        custom_lon=lon,
+        use_external_benchmark=use_external_benchmark
+    )
     
     # Save to MongoDB
     db.anomalies.update_one(

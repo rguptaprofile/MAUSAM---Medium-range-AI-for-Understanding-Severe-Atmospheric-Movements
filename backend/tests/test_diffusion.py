@@ -3,7 +3,6 @@ Unit tests for Stage-2 Conditional Diffusion Downscaler in MAUSAM.
 """
 import unittest
 import numpy as np
-import torch
 from backend.app.core.diffusion_downscaler import ConditionalDiffusionDownscaler
 
 class TestDiffusionDownscaler(unittest.TestCase):

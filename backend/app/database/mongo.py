@@ -162,6 +162,10 @@ class DatabaseManager:
         self.alerts = MongoCollectionWrapper(self.db["alerts"])
         self.subscriptions = MongoCollectionWrapper(self.db["subscriptions"])
         self.audit_logs = MongoCollectionWrapper(self.db["audit_logs"])
+        self.training_samples = MongoCollectionWrapper(self.db["training_samples"])
+        self.model_registry = MongoCollectionWrapper(self.db["model_registry"])
+        self.verification_records = MongoCollectionWrapper(self.db["verification_records"])
+        self.data_sources_status = MongoCollectionWrapper(self.db["data_sources_status"])
 
     def _init_fallback_collections(self):
         try:
@@ -176,7 +180,11 @@ class DatabaseManager:
             except Exception:
                 raw_data = {}
 
-        col_names = ["forecast_runs", "anomalies", "downscaled_grids", "alerts", "subscriptions", "audit_logs"]
+        col_names = [
+            "forecast_runs", "anomalies", "downscaled_grids", "alerts", 
+            "subscriptions", "audit_logs", "training_samples", "model_registry", 
+            "verification_records", "data_sources_status"
+        ]
         for name in col_names:
             c = InMemoryMongoCollection(name, self)
             c.docs = raw_data.get(name, [])
@@ -204,7 +212,10 @@ class DatabaseManager:
                 "anomalies": self.anomalies.count_documents({}),
                 "downscaled_grids": self.downscaled_grids.count_documents({}),
                 "alerts": self.alerts.count_documents({}),
-                "subscriptions": self.subscriptions.count_documents({})
+                "subscriptions": self.subscriptions.count_documents({}),
+                "training_samples": self.training_samples.count_documents({}),
+                "model_registry": self.model_registry.count_documents({}),
+                "verification_records": self.verification_records.count_documents({})
             }
         }
 

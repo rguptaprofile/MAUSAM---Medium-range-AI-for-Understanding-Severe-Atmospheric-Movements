@@ -1,0 +1,31 @@
+# MAUSAM AI Research & Continual Training Environment (SIH26078 Complete ML Stack)
+# For GPU clusters, offline training, and high-resolution atmospheric physics research
+
+# Core Deep Learning & Graph Networks
+torch>=2.2.0
+torchvision>=0.17.0
+diffusers>=0.29.0
+networkx>=3.2.0
+
+# Optional High-Performance Frameworks (GPU/Linux clusters)
+# Note: DGL and JAX wheels vary by CUDA version; install matching prebuilt wheels for your CUDA target:
+# pip install dgl -f https://data.dgl.ai/wheels/repo.html
+# pip install jax jaxlib
+dgl>=2.1.0; sys_platform != "win32"
+jax>=0.4.30; sys_platform != "win32"
+
+# Meteorological & Distributed Geospatial Computing
+xarray>=2024.7.0
+dask[array]>=2024.8.0
+netCDF4>=1.7.0
+scipy>=1.13.0
+shapely>=2.0.0
+pyproj>=3.6.0
+cftime>=1.6.4
+
+# Advanced Diagnostics & Scientific Cartography
+# Note: MetPy and Cartopy require PROJ and GEOS C-libraries
+metpy>=1.6.0
+matplotlib>=3.8.0
+tqdm>=4.66.0
+pytest>=8.0.0

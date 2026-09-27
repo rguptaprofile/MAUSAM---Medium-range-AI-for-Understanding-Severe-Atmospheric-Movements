@@ -13,32 +13,39 @@ from fastapi.responses import FileResponse
 
 from .config import settings
 from .database.mongo import init_db_indexes, db
-from .api import forecast_router, alerts_router, analytics_router
+from .api import forecast_router, alerts_router, analytics_router, v1_router
 from .core.pipeline import MausamPipeline
+from .training import continual_learning_engine
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("mausam.server")
 
 def _seed_benchmarks_background():
-    """Seeds baseline benchmark scenarios in background without blocking server startup."""
+    """Seeds baseline benchmark scenarios and historical truth-lagged pairs in background."""
     # Never run heavy simulation pipelines in short-lived serverless environments like Vercel
     if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
         return
     try:
         if db.anomalies.count_documents({}) == 0:
             logger.info("Database empty on startup. Pre-seeding baseline benchmark scenarios (Cyclone Amphan & Heatwave)...")
-            pipeline = MausamPipeline()
+            pipeline = MausamPipeline(demo_mode=True)
             pipeline.run_full_pipeline(scenario_type="cyclone_amphan")
             pipeline.run_full_pipeline(scenario_type="north_india_heatwave")
             logger.info("Baseline scenarios successfully seeded in background!")
+
+        # Automated stream ingestion: Current live + past 3-10 days data for continuous training
+        if db.training_samples.count_documents({}) < 5:
+            logger.info("Ingesting operational stream (current + past 3-10 days) into continual learning store...")
+            continual_learning_engine.ingest_live_and_historical_stream(days_back=10)
+            logger.info("Continual learning training store populated with verified truth-lagged pairs.")
     except Exception as e:
-        logger.warning(f"Background scenario seeding notice: {e}")
+        logger.warning(f"Background stream & scenario seeding notice: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup sequence: Instant non-blocking execution
-    logger.info("Initializing MAUSAM AI System...")
+    logger.info("Initializing MAUSAM AI System (SIH26078 Production Core)...")
     try:
         init_db_indexes()
     except Exception as e:
@@ -51,7 +58,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MAUSAM - Atmospheric Anomaly Tracking & Diffusion Downscaling API",
     description="SIH 2026 (SIH26078) - Team Lunar: AI-driven Spatio-Temporal Tracking of Extreme Weather Anomalies in Medium-Range Forecasts (3-10 Days)",
-    version="1.0.0",
+    version="1.2.0",
     lifespan=lifespan
 )
 
@@ -64,7 +71,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register API Routers
+# Register API Routers (SIH26078 Production v1 + Legacy Compatibility)
+app.include_router(v1_router)
 app.include_router(forecast_router)
 app.include_router(alerts_router)
 app.include_router(analytics_router)

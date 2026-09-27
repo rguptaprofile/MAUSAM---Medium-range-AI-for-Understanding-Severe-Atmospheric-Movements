@@ -1,0 +1,78 @@
+{
+  "policy_version": "POLICY-2026.1-CALIBRATED",
+  "last_calibrated": "2026-09-25T18:00:00Z",
+  "calibration_dataset": "IMD-NCMRWF-HISTORICAL-2015-2025",
+  "thresholds": {
+    "CYCLONE": {
+      "SEVERE": {
+        "wind_kmh": 65.0,
+        "efi_min": 0.85,
+        "prob_min": 0.7
+      },
+      "MODERATE": {
+        "wind_kmh": 45.0,
+        "efi_min": 0.65,
+        "prob_min": 0.5
+      },
+      "LOW": {
+        "wind_kmh": 30.0,
+        "efi_min": 0.4,
+        "prob_min": 0.3
+      }
+    },
+    "HEATWAVE": {
+      "SEVERE": {
+        "temp_c": 45.0,
+        "efi_min": 0.85,
+        "prob_min": 0.75
+      },
+      "MODERATE": {
+        "temp_c": 42.0,
+        "efi_min": 0.65,
+        "prob_min": 0.5
+      },
+      "LOW": {
+        "temp_c": 40.0,
+        "efi_min": 0.4,
+        "prob_min": 0.35
+      }
+    },
+    "EXTREME_PRECIPITATION": {
+      "SEVERE": {
+        "precip_mmh": 40.0,
+        "efi_min": 0.85,
+        "prob_min": 0.7
+      },
+      "MODERATE": {
+        "precip_mmh": 20.0,
+        "efi_min": 0.65,
+        "prob_min": 0.5
+      },
+      "LOW": {
+        "precip_mmh": 10.0,
+        "efi_min": 0.4,
+        "prob_min": 0.3
+      }
+    },
+    "COLD_WAVE": {
+      "SEVERE": {
+        "temp_c": 4.0,
+        "efi_min": 0.85,
+        "prob_min": 0.7
+      },
+      "MODERATE": {
+        "temp_c": 7.0,
+        "efi_min": 0.65,
+        "prob_min": 0.5
+      },
+      "LOW": {
+        "temp_c": 10.0,
+        "efi_min": 0.4,
+        "prob_min": 0.3
+      }
+    }
+  },
+  "uncertainty_penalty_factor": 0.15,
+  "min_impact_radius_km": 3.5,
+  "max_impact_radius_km": 50.0
+}

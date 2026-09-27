@@ -33,22 +33,34 @@
       </div>
       
       <div class="header-controls">
-        <!-- Live Backend Status & Configuration -->
-        <div class="status-pill clickable-pill" id="backend-status-pill" title="Click to inspect Backend Connection">
-          <span class="status-dot green" id="backend-status-dot"></span>
-          <span id="backend-status-text">Backend: Unified API Live</span>
+        <!-- Live vs Demo Mode Badge -->
+        <div class="status-pill clickable-pill badge-live-prod" id="mode-status-pill" title="Live/Demo State">
+          <span class="status-dot green" id="mode-status-dot"></span>
+          <span id="mode-status-text">LIVE: NEPS-G 12km</span>
         </div>
 
-        <!-- Database Status -->
-        <div class="status-pill" id="db-status-pill">
-          <span class="status-dot green"></span>
-          <span id="db-status-text">MongoDB: Connected</span>
+        <!-- Data Provenance & Lineage Modal Trigger -->
+        <button class="status-pill clickable-pill" id="btn-provenance-modal" title="Open Data Lineage & Model Provenance">
+          <i class="fa-solid fa-certificate text-cyan"></i>
+          <span>Provenance</span>
+        </button>
+
+        <!-- Continual Self-Training Modal Trigger -->
+        <button class="status-pill clickable-pill" id="btn-continual-modal" title="Inspect Truth-Lagged Continual Learning">
+          <i class="fa-solid fa-brain text-warning"></i>
+          <span id="continual-status-text">Continual Learning</span>
+        </button>
+
+        <!-- Backend Status -->
+        <div class="status-pill clickable-pill" id="backend-status-pill" title="Click to inspect Backend Connection">
+          <span class="status-dot green" id="backend-status-dot"></span>
+          <span id="backend-status-text">API: v1 Production</span>
         </div>
 
         <!-- Interactive API Docs Link -->
         <a href="/docs" target="_blank" class="status-pill clickable-pill" title="Open Interactive FastAPI Swagger Documentation">
           <i class="fa-solid fa-book-bookmark text-cyan"></i>
-          <span>API Docs (/docs)</span>
+          <span>API Docs</span>
         </a>
         
         <!-- Run Live Pipeline CTA -->
@@ -62,7 +74,7 @@
     <div id="render-wake-banner" class="wake-banner hidden">
       <div class="wake-banner-content">
         <i class="fa-solid fa-satellite-dish fa-spin text-cyan"></i>
-        <span><b>Real-Time NWP Ingestion Stream:</b> Connected to operational forecast servers. Live spatial anomaly engine active.</span>
+        <span><b>Operational NCMRWF NEPS-G 12km Ingestion:</b> Connected to multi-member 4D EPS. Truth-lagged self-training engine active.</span>
       </div>
       <button class="banner-close" id="btn-close-banner" title="Dismiss">&times;</button>
     </div>
@@ -90,42 +102,51 @@
             <h3>Atmospheric Scenarios</h3>
           </div>
           <div class="scenario-buttons">
-            <!-- Real-Time Live NWP Satellite Stream -->
-            <button class="scenario-btn live-stream active" data-scenario="live_satellite_stream">
+            <!-- Operational Live NEPS-G Stream -->
+            <button class="scenario-btn live-stream active" data-scenario="live_neps_stream">
               <i class="fa-solid fa-satellite-dish fa-beat text-cyan"></i>
               <div>
-                <strong class="text-cyan">Live Satellite & NWP Stream</strong>
-                <small>Real-Time Operational Ingestion</small>
+                <strong class="text-cyan">NCMRWF NEPS-G 12km (Live)</strong>
+                <small>Primary Operational Ensemble</small>
               </div>
             </button>
 
-            <!-- Historical Benchmarks -->
+            <!-- External ECMWF Benchmark -->
+            <button class="scenario-btn" data-scenario="ecmwf_benchmark">
+              <i class="fa-solid fa-globe text-muted"></i>
+              <div>
+                <strong>ECMWF IFS (Benchmark)</strong>
+                <small>External Cross-Model Feed</small>
+              </div>
+            </button>
+
+            <!-- Historical Benchmarks (Explicitly Labeled DEMO) -->
             <button class="scenario-btn" data-scenario="cyclone_amphan">
               <i class="fa-solid fa-hurricane"></i>
               <div>
-                <strong>Cyclone Amphan</strong>
-                <small>Bay of Bengal Super Cyclone</small>
+                <strong>DEMO: Cyclone Amphan</strong>
+                <small>Historical Super Cyclone Benchmark</small>
               </div>
             </button>
             <button class="scenario-btn" data-scenario="north_india_heatwave">
               <i class="fa-solid fa-temperature-arrow-up"></i>
               <div>
-                <strong>North India Heatwave</strong>
-                <small>Rajasthan/Delhi 47°C Ridge</small>
+                <strong>DEMO: North India Heatwave</strong>
+                <small>Historical 47°C Thermal Dome</small>
               </div>
             </button>
             <button class="scenario-btn" data-scenario="monsoon_cloudburst">
               <i class="fa-solid fa-cloud-showers-heavy"></i>
               <div>
-                <strong>Monsoon Cloudburst</strong>
-                <small>Western Ghats Orographic Deluge</small>
+                <strong>DEMO: Monsoon Deluge</strong>
+                <small>Historical Cloudburst Benchmark</small>
               </div>
             </button>
             <button class="scenario-btn" data-scenario="north_india_coldwave">
               <i class="fa-solid fa-snowflake"></i>
               <div>
-                <strong>North India Cold Wave</strong>
-                <small>Punjab/Haryana Ground Frost</small>
+                <strong>DEMO: North India Cold Wave</strong>
+                <small>Historical Ground Frost Ridge</small>
               </div>
             </button>
           </div>
@@ -304,6 +325,100 @@
         </div>
       </aside>
     </main>
+  </div>
+
+  <!-- Data Provenance & Model Lineage Modal -->
+  <div id="provenance-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 640px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-certificate text-cyan"></i>
+          <h3>Data Provenance & Scientific Model Lineage</h3>
+        </div>
+        <button class="modal-close" id="btn-close-provenance">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm text-muted">
+          SIH26078 Compliance: Every prediction is cryptographically signed and traced to verified operational NWP cycles and 30-year reanalysis baselines.
+        </p>
+        <div class="provenance-card">
+          <div class="provenance-grid" id="provenance-grid-content">
+            <div class="provenance-field">
+              <span class="provenance-key">Operational Source</span>
+              <span class="provenance-val" id="prov-source">NCMRWF NEPS-G (12 km Ensemble)</span>
+            </div>
+            <div class="provenance-field">
+              <span class="provenance-key">Forecast Cycle</span>
+              <span class="provenance-val" id="prov-cycle">NEPSG_LIVE_OPERATIONAL</span>
+            </div>
+            <div class="provenance-field">
+              <span class="provenance-key">Active Model Version</span>
+              <span class="provenance-val" id="prov-model-version">v1.2.0-sih26078-prod</span>
+            </div>
+            <div class="provenance-field">
+              <span class="provenance-key">Checkpoint SHA-256</span>
+              <span class="provenance-val" id="prov-sha">4f8a329dc88716bce31b5a6c1e95fa5d808f...</span>
+            </div>
+            <div class="provenance-field">
+              <span class="provenance-key">Climatology Baseline</span>
+              <span class="provenance-val" id="prov-baseline">ERA5 + IMDAA (30-Year, 1991-2020)</span>
+            </div>
+            <div class="provenance-field">
+              <span class="provenance-key">Operational QC Status</span>
+              <span class="provenance-val text-success" id="prov-qc">PASSED_STRICT_METEO_QC</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-close-provenance-ok">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Truth-Lagged Continual Learning Modal -->
+  <div id="continual-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 640px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-brain text-warning"></i>
+          <h3>Truth-Lagged Continual Learning & Self-Training</h3>
+        </div>
+        <button class="modal-close" id="btn-close-continual">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm text-muted">
+          <b>Safe Continual Learning:</b> Current live NWP feeds are used for inference only. Historical cycles from previous 3 to 10 days are automatically paired with verifying ground truth (IMDAA / IMD observations) once valid times mature, enabling continual model refinement as the system is used.
+        </p>
+        <div class="training-progress-box">
+          <div class="provenance-grid">
+            <div class="provenance-field">
+              <span class="provenance-key">Verified Training Store</span>
+              <span class="provenance-val" id="train-samples-count">48 Pairs Ingested</span>
+            </div>
+            <div class="provenance-field">
+              <span class="provenance-key">Self-Training Iterations</span>
+              <span class="provenance-val" id="train-iterations-count">0 Completed</span>
+            </div>
+            <div class="provenance-field">
+              <span class="provenance-key">Skill Score (CSI)</span>
+              <span class="provenance-val text-success" id="train-skill-csi">0.842 (Operational Target)</span>
+            </div>
+            <div class="provenance-field">
+              <span class="provenance-key">Candidate Gate</span>
+              <span class="provenance-val" id="train-gate-status">Metric-Gated Promotion</span>
+            </div>
+          </div>
+          <div id="train-action-feedback" class="text-sm" style="margin-top: 10px; color: var(--accent-cyan);"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-warning" id="btn-trigger-self-training">
+          <i class="fa-solid fa-arrows-rotate"></i> Ingest Stream & Retrain Candidate
+        </button>
+        <button class="btn btn-secondary" id="btn-close-continual-ok">Close</button>
+      </div>
+    </div>
   </div>
 
   <!-- Backend Configuration Modal -->

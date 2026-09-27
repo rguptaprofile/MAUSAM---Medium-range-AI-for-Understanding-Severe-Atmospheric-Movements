@@ -1,0 +1,19 @@
+{
+  "model_version": "v1.1.0-live-retrained-20260927_043920",
+  "model_type": "SPHERICAL_GNN_TRACKER",
+  "in_features": 7,
+  "hidden_dim": 64,
+  "trained_epochs": 160,
+  "training_samples_count": 6,
+  "metrics": {
+    "csi": 0.8576,
+    "pod": 0.9035,
+    "far": 0.1171,
+    "val_loss": 0.0353
+  },
+  "anomaly_head_bias": [
+    -0.8655672811924425
+  ],
+  "trained_at": "2026-09-27T04:39:20.920139",
+  "updated_at": "2026-09-27T04:39:20.920272"
+}

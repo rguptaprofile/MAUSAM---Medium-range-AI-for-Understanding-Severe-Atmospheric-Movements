@@ -942,3 +942,62 @@ body {
     display: none; /* Hide on smallest phones to maximize map area */
   }
 }
+
+/* SIH26078 Production & Provenance Styling */
+.badge-live-prod {
+  background: rgba(0, 230, 118, 0.15) !important;
+  border: 1px solid rgba(0, 230, 118, 0.5) !important;
+  color: #00e676 !important;
+  font-weight: 700 !important;
+}
+
+.badge-demo-synthetic {
+  background: rgba(255, 184, 0, 0.15) !important;
+  border: 1px solid rgba(255, 184, 0, 0.5) !important;
+  color: #ffb800 !important;
+  font-weight: 700 !important;
+}
+
+.provenance-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 10px;
+}
+
+.provenance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.provenance-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.provenance-key {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.provenance-val {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+.training-progress-box {
+  background: rgba(0, 210, 255, 0.05);
+  border: 1px solid rgba(0, 210, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+

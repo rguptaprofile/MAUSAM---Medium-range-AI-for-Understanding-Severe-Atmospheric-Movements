@@ -106,3 +106,69 @@ class DistrictSubscription(BaseModel):
     lon: float
     alert_threshold: str = "MODERATE" # LOW, MODERATE, SEVERE
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ProvenanceMetadata(BaseModel):
+    model_version: str = "v1.0.0-sih26078"
+    checkpoint_sha: str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    data_version: str = "NEPS-G-2026.09"
+    baseline_version: str = "ERA5-IMDAA-30YR-CLIM-v1"
+    code_commit: str = "git-sih26078-prod"
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class DataSourceCard(BaseModel):
+    source_name: str
+    provider: str
+    forecast_cycle: str
+    init_time: datetime
+    valid_time_range: str
+    file_id: str
+    checksum: str
+    retrieval_time: datetime = Field(default_factory=datetime.utcnow)
+    quality_status: str = "VALIDATED" # VALIDATED, WARNING, DEGRADED, REJECTED
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+class ModelRegistryEntry(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    model_version: str
+    model_type: str # GNN_TRACKER, DIFFUSION_DOWNSCALER, ENSEMBLE_PIPELINE
+    checkpoint_path: str
+    checkpoint_sha: str
+    training_date: datetime = Field(default_factory=datetime.utcnow)
+    trained_on_samples_count: int = 0
+    hyperparameters: Dict[str, Any] = Field(default_factory=dict)
+    metrics: Dict[str, float] = Field(default_factory=dict) # csi, crps, extreme_quantile_bias, physics_loss
+    is_active: bool = False
+    is_candidate: bool = False
+    shadow_mode: bool = False
+    status: str = "ACTIVE" # ACTIVE, CANDIDATE, ARCHIVED
+
+class TrainingSample(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sample_id: str
+    forecast_cycle: str
+    lead_time_days: float
+    init_time: datetime
+    valid_time: datetime
+    variable: str
+    forecast_source: str # NEPS-G, NCUM-G
+    verifying_truth_source: str # IMDAA, IMD_API, ERA5
+    status: str = "QUEUED" # QUEUED, VERIFIED, CONSUMED_IN_TRAINING
+    forecast_summary: Dict[str, Any] = Field(default_factory=dict)
+    truth_summary: Dict[str, Any] = Field(default_factory=dict)
+    skill_scores: Dict[str, float] = Field(default_factory=dict) # rmse, bias, csi
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class VerificationRecord(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    record_id: str
+    forecast_cycle: str
+    lead_day: float
+    event_type: str # CYCLONE, HEATWAVE, DELUGE, COLDWAVE
+    variable: str
+    csi: float # Critical Success Index
+    pod: float # Probability of Detection
+    far: float # False Alarm Rate
+    crps: float # Continuous Ranked Probability Score
+    extreme_quantile_bias: float
+    verified_at: datetime = Field(default_factory=datetime.utcnow)
+

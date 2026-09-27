@@ -21,10 +21,11 @@ class RealAtmosphericDataLoader:
     def __init__(self):
         pass
 
-    def load_netcdf(self, file_path: str) -> Dict[str, Any]:
+    def load_netcdf(self, file_path: str, demo_mode: bool = False) -> Dict[str, Any]:
         """
         Reads a standard meteorological NetCDF file using Xarray and normalizes variables
         into the format expected by MAUSAM's Spherical GNN and Diffusion pipeline.
+        In production mode (demo_mode=False), rejects incomplete inputs instead of silent synthesis.
         """
         if xr is None:
             raise ImportError("xarray and netCDF4 are required for reading NetCDF datasets. Install via: pip install xarray netCDF4")
@@ -32,7 +33,7 @@ class RealAtmosphericDataLoader:
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"NetCDF file not found at: {file_path}")
 
-        logger.info(f"Opening real atmospheric NetCDF dataset: {file_path}")
+        logger.info(f"Opening real atmospheric NetCDF dataset: {file_path} (demo_mode={demo_mode})")
         ds = xr.open_dataset(file_path)
 
         # 1. Resolve Coordinate Names
@@ -60,6 +61,14 @@ class RealAtmosphericDataLoader:
         else:
             LATS, LONS = lats, lons
 
+        # Check for ensemble member dimension in metadata
+        member_coord = None
+        for m_name in ["member", "number", "ens", "realization"]:
+            if m_name in ds.coords or m_name in ds.dims:
+                member_coord = m_name
+                break
+        num_members = len(ds[member_coord]) if member_coord else 1
+
         # 2. Extract or Map Atmospheric Variables with standard fallbacks
         var_map = {
             "u_wind": ["u10", "u", "10u", "u_wind", "UGRD"],
@@ -71,6 +80,7 @@ class RealAtmosphericDataLoader:
             "z500": ["z", "gh", "geopotential", "hgt", "HGT"]
         }
 
+        mandatory_in_prod = ["u_wind", "v_wind", "t2m", "mslp", "precip"]
         extracted = {}
         for target_var, aliases in var_map.items():
             matched_var = None
@@ -88,8 +98,10 @@ class RealAtmosphericDataLoader:
                     arr = arr * 1000.0 # Convert m to mm
                 extracted[target_var] = np.nan_to_num(arr, nan=0.0).astype(np.float32)
             else:
-                # If variable missing in single-level file, synthesize physically plausible default
-                logger.warning(f"Variable '{target_var}' not found in NetCDF; substituting neutral physical baseline.")
+                if not demo_mode and target_var in mandatory_in_prod:
+                    ds.close()
+                    raise ValueError(f"Production NetCDF ingest rejected: missing mandatory atmospheric variable '{target_var}'. Set demo_mode=True to permit synthetic substitution.")
+                logger.warning(f"Variable '{target_var}' not found in NetCDF; substituting neutral physical baseline (DEMO_MODE={demo_mode}).")
                 num_steps = 8
                 shape = (num_steps, LATS.shape[0], LATS.shape[1])
                 if target_var == "precip":
@@ -120,6 +132,7 @@ class RealAtmosphericDataLoader:
 
         return {
             "source_file": os.path.basename(file_path),
+            "ensemble_members": num_members,
             "lead_days": lead_days,
             "lats": LATS,
             "lons": LONS,
