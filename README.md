@@ -413,9 +413,67 @@ python -c "from backend.app.main import app; from fastapi.testclient import Test
 
 ## 10. References & Scientific Citations
 
-1. **Lalaurette, F. (2003)**. *Early detection of abnormal weather conditions using a probabilistic extreme forecast index*. Quarterly Journal of the Royal Meteorological Society, 129(594), 3037–3057. [DOI: 10.1256/qj.02.138](https://doi.org/10.1256/qj.02.138)
-2. **Ho, J., Jain, A., & Abbeel, P. (2020)**. *Denoising Diffusion Probabilistic Models*. Advances in Neural Information Processing Systems (NeurIPS 2020), 33, 6840–6851. [arXiv:2006.11239](https://arxiv.org/abs/2006.11239)
-3. **Lam, R., et al. (2023)**. *Learning skillful medium-range global weather forecasting (GraphCast)*. Science, 382(6677), 1416–1421. [DOI: 10.1126/science.adi2336](https://doi.org/10.1126/science.adi2336)
-4. **Ashrit, R., et al. (2020)**. *NCMRWF Global Ensemble Prediction System (NEPS-G): Operational Implementation and Evaluation*. Current Science, 118(7), 1078–1089.
-5. **Rani, S. I., et al. (2021)**. *IMDAA: High-Resolution Regional Atmospheric Reanalysis over India*. Journal of Climate, 34(13), 5109–5127. [DOI: 10.1175/JCLI-D-20-0412.1](https://doi.org/10.1175/JCLI-D-20-0412.1)
-6. **Hersbach, H., et al. (2020)**. *The ERA5 global reanalysis*. Quarterly Journal of the Royal Meteorological Society, 146(730), 1999–2049. [DOI: 10.1002/qj.3803](https://doi.org/10.1002/qj.3803)
+The architectural, algorithmic, and meteorological implementations in MAUSAM are grounded in peer-reviewed scientific literature across atmospheric physics, numerical weather prediction, spherical deep learning, generative diffusion, and continual machine learning.
+
+### 1. NCMRWF Operational Ensembles & Indian Regional Reanalysis
+1. **Dube, A., Ashrit, R., & Kumar, S. (2020)**. *Improvements in Tropical Cyclone Forecasting through Ensemble Prediction System at NCMRWF in India*. Tropical Cyclone Research and Review, 9(2), 103–115. [DOI: 10.1016/j.tcrr.2020.04.003](https://doi.org/10.1016/j.tcrr.2020.04.003)  
+   *Used for: NCMRWF NEPS-G 12 km multi-member ensemble configuration, ensemble dispersion calibration, and cyclone track verification.*
+2. **Sarkar, A., Kumar, S., Dube, A., Prasad, S. K., Mamgain, A., Chakraborty, P., Ashrit, R., & Mitra, A. K. (2021)**. *Forecasting of tropical cyclone using global and regional ensemble prediction systems of NCMRWF: A review*. Mausam, 72(1), 131–146. [DOI: 10.54302/mausam.v72i1.131](https://doi.org/10.54302/mausam.v72i1.131)  
+   *Used for: Evaluation benchmarks of operational global and regional ensemble forecasting over the North Indian Ocean basin.*
+3. **Rani, S. I., Arulalan, T., George, J. P., Rajagopal, E. N., et al. (2021)**. *IMDAA: High-Resolution Regional Atmospheric Reanalysis over India*. Journal of Climate, 34(13), 5109–5127. [DOI: 10.1175/JCLI-D-20-0412.1](https://doi.org/10.1175/JCLI-D-20-0412.1)  
+   *Used for: Ground-truth reference fields in truth-lagged continual learning and historical reanalysis baseline calibration.*
+4. **Saha, S., Moorthi, S., Wu, X., Wang, J., et al. (2014)**. *The NCEP Climate Forecast System Version 2*. Journal of Climate, 27(6), 2185–2208. [DOI: 10.1175/JCLI-D-12-00823.1](https://doi.org/10.1175/JCLI-D-12-00823.1)  
+   *Used for: Operational multi-model global ensemble integration in `noaa_gfs_connector.py`.*
+
+### 2. Extreme Forecast Index (EFI) Theory & Climatological Baselines
+5. **Lalaurette, F. (2003)**. *Early detection of abnormal weather conditions using a probabilistic extreme forecast index*. Quarterly Journal of the Royal Meteorological Society, 129(594), 3037–3057. [DOI: 10.1256/qj.02.152](https://doi.org/10.1256/qj.02.152)  
+   *Used for: Mathematical formulation of the Extreme Forecast Index (EFI) via non-linear weighted integration against model climatology.*
+6. **Petroliagis, F. G., & Pinson, P. (2014)**. *Early model of extreme winds using the Extreme Forecast Index (EFI)*. Atmospheric Science Letters, 15(1), 41–48. [DOI: 10.1002/asl2.465](https://doi.org/10.1002/asl2.465)  
+   *Used for: Extreme wind threshold derivation, Shift of Tails (SOT) calibration, and early severe gale warning triggers.*
+7. **Hersbach, H., Bell, B., Berrisford, P., Hirahara, S., Horányi, A., et al. (2020)**. *The ERA5 global reanalysis*. Quarterly Journal of the Royal Meteorological Society, 146(730), 1999–2049. [DOI: 10.1002/qj.3803](https://doi.org/10.1002/qj.3803)  
+   *Used for: 30-year reanalysis baseline (1991–2020) yielding $p_{01}$ to $p_{99}$ percentile climatology in `era5_baseline_connector.py`.*
+
+### 3. Spherical Graph Neural Networks & Geodesic Earth Meshes (Stage 1 Tracking)
+8. **Lam, R., Sanchez-Gonzalez, A., Willson, M., Wirnsberger, P., Fortunato, M., Alet, F., et al. (2023)**. *Learning skillful medium-range global weather forecasting (GraphCast)*. Science, 382(6677), 1416–1421. [DOI: 10.1126/science.adi2336](https://doi.org/10.1126/science.adi2336)  
+   *Used for: Multi-mesh message-passing architecture over icosahedral geodesic spheres for medium-range atmospheric state propagation.*
+9. **Cohen, T. S., Geiger, M., Köhler, J., & Welling, M. (2018)**. *Spherical CNNs*. In International Conference on Learning Representations (ICLR 2018). [DOI: 10.48550/arXiv.1801.10130](https://doi.org/10.48550/arXiv.1801.10130)  
+   *Used for: $\text{SO}(3)$-equivariant spherical feature representations eliminating polar coordinate singularities.*
+10. **Kipf, T. N., & Welling, M. (2017)**. *Semi-Supervised Classification with Graph Convolutional Networks*. In International Conference on Learning Representations (ICLR 2017). [DOI: 10.48550/arXiv.1609.02907](https://doi.org/10.48550/arXiv.1609.02907)  
+    *Used for: Normalized graph Laplacian convolution $\mathbf{\hat{A}} = \mathbf{\tilde{D}}^{-\frac{1}{2}} \mathbf{\tilde{A}} \mathbf{\tilde{D}}^{-\frac{1}{2}}$ implemented in `TorchSphericalGNN`.*
+11. **Lang, S. T. K., Alexe, F., Chantry, M., Dramsch, J., Pinault, F., et al. (2024)**. *AIFS – ECMWF's machine-learning data-driven weather forecasting model*. arXiv:2406.01465. [DOI: 10.48550/arXiv.2406.01465](https://doi.org/10.48550/arXiv.2406.01465)  
+    *Used for: Multi-scale spatial graph representation and medium-range AI ensemble benchmark comparison.*
+
+### 4. Generative Conditional Diffusion Models (Stage 2 Downscaling: 12 km $\to$ 5 km)
+12. **Ho, J., Jain, A., & Abbeel, P. (2020)**. *Denoising Diffusion Probabilistic Models*. Advances in Neural Information Processing Systems (NeurIPS 2020), 33, 6840–6851. [DOI: 10.48550/arXiv.2006.11239](https://doi.org/10.48550/arXiv.2006.11239)  
+    *Used for: Stochastic reverse-time Markov denoising formulation in `TorchConditionalDiffusionNet`.*
+13. **Mardani, M., Brenowitz, N. D., Cohen, Y., Pathak, J., et al. (2025)**. *Residual corrective diffusion modeling for km-scale atmospheric downscaling (CorrDiff)*. Communications Earth & Environment (Nature Portfolio), 6, 124. [DOI: 10.1038/s43247-025-02042-5](https://doi.org/10.1038/s43247-025-02042-5)  
+    *Used for: Residual diffusion architecture conditioning on coarse NWP states to reconstruct high-resolution atmospheric turbulence.*
+14. **Addison, H., Kendon, E., Ravuri, S., Aitchison, L., & Shannon, P. C. (2024)**. *Machine learning downscaling of rainfall extremes: resolving spectral smoothing*. Geophysical Research Letters, 51(8), e2023GL106808. [DOI: 10.1029/2023GL106808](https://doi.org/10.1029/2023GL106808)  
+    *Used for: Resolving spectral smoothing and preserving extreme precipitation peak amplitudes ($p_{90}$ tail recovery).*
+15. **Song, Y., Sohl-Dickstein, J., Kingma, D. P., Kumar, A., Ermon, S., & Poole, B. (2021)**. *Score-Based Generative Modeling through Stochastic Differential Equations*. In International Conference on Learning Representations (ICLR 2021). [DOI: 10.48550/arXiv.2011.13456](https://doi.org/10.48550/arXiv.2011.13456)  
+    *Used for: Continuous score matching and multi-realization probabilistic ensemble sampling.*
+
+### 5. Thermodynamic Physics Loss Constraints & Conservation Laws
+16. **Raissi, M., Perdikaris, P., & Karniadakis, G. E. (2019)**. *Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations*. Journal of Computational Physics, 378, 686–707. [DOI: 10.1016/j.jcp.2018.10.045](https://doi.org/10.1016/j.jcp.2018.10.045)  
+    *Used for: Formulating differential physics loss penalties within PyTorch autograd optimization loops.*
+17. **Beucler, T., Pritchard, M., Rasp, S., Ott, J., Baldi, P., & Gentine, P. (2021)**. *Enforcing Analytic Constraints in Neural Networks Emulating Physical Systems*. Physical Review Letters, 126(9), 098302. [DOI: 10.1103/PhysRevLett.126.098302](https://doi.org/10.1103/PhysRevLett.126.098302)  
+    *Used for: Enforcing thermodynamic conservation laws, energy balances, and strict non-negativity constraints.*
+18. **Holton, J. R., & Hakim, G. J. (2013)**. *An Introduction to Dynamic Meteorology* (5th ed.). Academic Press / Elsevier. [DOI: 10.1016/C2009-0-63394-8](https://doi.org/10.1016/C2009-0-63394-8)  
+    *Used for: Governing equations of atmospheric motion, geostrophic balance $f \mathbf{v}_g = -\frac{1}{\rho}\nabla p$, and moisture flux convergence $-\nabla \cdot (q \mathbf{v})$ in `AtmosphericPhysicsEngine`.*
+
+### 6. Ground Truth Remote Sensing, Synoptic Stations & Cyclone Operations
+19. **Huffman, G. J., Stocker, E. F., Bolvin, D. T., Nelkin, E. J., & Tan, J. (2023)**. *GPM IMERG Final Precipitation L3 Half Hourly 0.1 degree x 0.1 degree V07*. Goddard Earth Sciences Data and Information Services Center (GES DISC). [DOI: 10.5067/GPM/IMERG/3B-HH/07](https://doi.org/10.5067/GPM/IMERG/3B-HH/07)  
+    *Used for: High-resolution satellite precipitation ground truth verification in `gpm_imerg_connector.py`.*
+20. **Mohapatra, M., Bandyopadhyay, B. K., & Tyagi, A. (2012)**. *Best track parameters of tropical cyclones over the North Indian Ocean: A review*. Natural Hazards, 63(3), 1285–1317. [DOI: 10.1007/s11069-011-9935-0](https://doi.org/10.1007/s11069-011-9935-0)  
+    *Used for: Cyclone genesis, intensity estimation, central pressure drop metrics, and IMD cyclone tracking criteria.*
+21. **Mohapatra, M., Mandal, G. S., Bandyopadhyay, B. K., Tyagi, A., & Mohanty, U. C. (2012)**. *Classification of cyclone hazard prone districts of India*. Natural Hazards, 63(3), 1601–1620. [DOI: 10.1007/s11069-011-9891-8](https://doi.org/10.1007/s11069-011-9891-8)  
+    *Used for: District vulnerability weighting, alert severity thresholds, and coastal disaster mitigation policies.*
+
+### 7. Statistical Forecast Verification & Continual Learning Systems
+22. **Wilks, D. S. (2019)**. *Statistical Methods in the Atmospheric Sciences* (4th ed.). Elsevier. Print ISBN: 978-0-12-815823-4; eBook ISBN: 978-0-12-816527-0.  
+    *Used for: Contingency table verification metrics (CSI, POD, FAR, ETS, Continuous Ranked Probability Score - CRPS).*
+23. **Ebert, E. E., Wilson, L. J., Weigel, A. P., Mittermaier, M. P., Nurmi, P., Gill, P., et al. (2013)**. *Progress and challenges in forecast verification for high-impact weather*. Meteorological Applications, 20(2), 130–139. [DOI: 10.1002/met.1392](https://doi.org/10.1002/met.1392)  
+    *Used for: Verification strategies for rare extreme events, spatial verification techniques, and metric-gated model promotion.*
+24. **Parisi, G. I., Kemker, R., Part, J. L., Kanan, C., & Wermter, S. (2019)**. *Continual lifelong learning with neural networks: A review*. Neural Networks, 113, 54–71. [DOI: 10.1016/j.neunet.2019.01.012](https://doi.org/10.1016/j.neunet.2019.01.012)  
+    *Used for: Truth-lagged replay buffer design and avoiding catastrophic forgetting in `TruthLaggedContinualLearningEngine`.*
+
