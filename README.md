@@ -245,15 +245,60 @@ MAUSAM enforces a strict source hierarchy (`backend/app/data_sources/`):
 | :--- | :--- | :--- | :--- | :--- |
 | **NEPS-G 12 km** | Primary Forecast Input | NCMRWF (MoES) | 12 km global ensemble, 21 members, 10-day horizon, 4D fields (T, U, V, MSLP, Q, P, Z500) | `neps_g_connector.py` |
 | **NCUM-G 12 km** | Deterministic Control | NCMRWF | 12 km global deterministic companion run | `ncum_g_connector.py` |
+| **NOAA GFS 0.25°** | Multi-Model Ensemble | NOAA / NCEP | 0.25° operational global NWP member over 10-day horizon | `noaa_gfs_connector.py` |
+| **NASA GPM IMERG** | Satellite Truth Verification | NASA / JAXA | 0.1° half-hourly satellite precipitation ground truth (V07B) | `gpm_imerg_connector.py` |
 | **ERA5 Baseline** | 30-Year Climatology | Copernicus CDS | Hourly global reanalysis (1991–2020), versioned $p_{01}..p_{99}$ percentiles | `era5_baseline_connector.py` |
 | **IMDAA Regional** | Verification / Ground Truth | NCMRWF RDS | 12 km Indian regional reanalysis (1979–2020) for truth-lagged pairing | `imdaa_connector.py` |
-| **IMD Official API** | Operational Observations | IMD (New Delhi) | AWS stations, Doppler radar composites, cyclone bulletins | `imd_api_connector.py` |
+| **IMD Official API** | Operational Observations | IMD (Govt. of India) | Live AWS/ARG data, 7-day city forecasts, district nowcasts, warnings, cyclone bulletins | `imd_api_connector.py` |
 | **ECMWF Open Data** | External Benchmark | ECMWF | 0.25° Open IFS / AIFS ensemble (labeled external benchmark) | `ecmwf_open_connector.py` |
 | **High-Res Target** | Diffusion Supervision | NCMRWF / DWR | ~4 km NCUM-R regional mesoscale fields + radar precipitation | `highres_regional_connector.py` |
 
+### 11-Stage End-to-End Pipeline Flow
+
+MAUSAM implements the complete 11-stage workflow connecting raw NWP ingestion to field disaster management:
+
+```
+[1. DATA INGESTION (Xarray / Dask)]
+                │
+                ▼
+[2. PREPROCESSING (Clean + align variables / time)]
+                │
+                ▼
+[3. ENSEMBLE DATA (Many possible futures / multi-member aggregation)]
+                │
+                ▼
+[4. ANOMALY DETECTION (Find unusual regions)]
+                │
+                ▼
+[5. EFI (Extreme Forecast Index vs 30-year ERA5 climatology)]
+                │
+                ▼
+[6. GNN TRACKING (Spherical Geodesic Mesh Message Passing)]
+                │
+                ▼
+[7. DYNAMIC CROP (Focus only on event region across 3-10 days)]
+                │
+                ▼
+[8. DIFFUSION DOWNSCALING (12 km -> 5 km finer detail preserving peaks)]
+                │
+                ▼
+[9. PHYSICS CHECK (Is result physically sane? Geostrophic, moisture continuity)]
+                │
+                ▼
+[10. VALIDATION (Compare with reference data: IMD AWS/ARG & NASA GPM)]
+                │
+                ▼
+[11. IMPACT MAP (Location + time severity + uncertainty envelope)]
+                │
+                ▼
+     ┌────────────────────────┴────────────────────────┐
+     ▼                                                 ▼
+[Interactive Dashboard (UI)]               [Production REST API v1]
+```
+
 ### Data Pipeline: Strict QC, Normalization, Dask Chunking & Provenance
-- `MeteorologicalQCValidator`: Rejects incomplete forecast inputs in production mode. Silent synthetic substitution is permitted **only** when `demo_mode=True`.
-- `MeteorologicalNormalizer`: Converts pressure to hPa, precipitation to mm, temperature to Kelvin/°C, and wraps multi-gigabyte arrays in **Dask chunks** for out-of-core parallel execution.
+- `MeteorologicalQCValidator`: Rejects incomplete forecast inputs in production mode. Silent synthetic substitution is strictly prohibited in live execution.
+- `MeteorologicalNormalizer`: Converts pressure to hPa, precipitation to mm/h, temperature to °C, and wraps multi-gigabyte arrays in **Dask chunks** for out-of-core parallel execution.
 - `ProvenanceMetadata`: Attaches cryptographic SHA-256 hashes, model versions, forecast cycles, and data timestamps to every output.
 
 ---
@@ -264,7 +309,7 @@ All endpoints conform to the SIH26078 data contract and are served under `/api/v
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/v1/sources` | Lists operational source health, latency, last successful cycle, and QC status |
+| `GET` | `/api/v1/sources` | Lists operational source health, latency, last successful cycle, and QC status across all connectors |
 | `GET` | `/api/v1/forecast/cycles` | Lists available operational forecast cycles and lead times (current + past 3–10 days) |
 | `POST` | `/api/v1/ingest/cycle` | Registers, downloads, and validates an operational NEPS-G / NCUM cycle with strict QC |
 | `POST` | `/api/v1/inference/run` | Runs trained GNN + Diffusion pipeline on a cycle/region (`mode=live` or `mode=demo`) |
@@ -277,6 +322,14 @@ All endpoints conform to the SIH26078 data contract and are served under `/api/v
 | `POST` | `/api/v1/training/trigger` | Triggers truth-lagged continual learning cycle (ingest stream $\to$ retrain candidate $\to$ validate $\to$ promote) |
 | `GET` | `/api/v1/training/status` | Reports continual learning progress, verified samples in store, and model skill progression |
 | `GET` | `/api/v1/models` | Lists model registry catalog, active production models, and shadow candidate checkpoints |
+| `GET` | `/api/v1/imd/current-weather` | Official IMD Current Weather observation telemetry across Indian synoptic stations |
+| `GET` | `/api/v1/imd/city-forecast` | Official IMD 7-Day City Weather Forecast across major metropolitan centers |
+| `GET` | `/api/v1/imd/aws-data` | Official IMD Automatic Weather Station (AWS) and Rain Gauge (ARG) data |
+| `GET` | `/api/v1/imd/district-nowcast`| Official IMD 3-hour severe weather nowcast warnings by district |
+| `GET` | `/api/v1/imd/district-warning`| Official IMD 5-day colour-coded district weather warnings (GREEN/YELLOW/ORANGE/RED) |
+| `GET` | `/api/v1/imd/cyclone-track` | Official IMD tropical cyclone monitoring bulletins, predicted tracks, and coastal warnings |
+| `GET` | `/api/v1/pipeline/flow` | Returns the comprehensive 11-Stage Meteorological AI Pipeline Architecture specification |
+| `POST` | `/api/v1/pipeline/run-full` | Triggers the complete 11-stage automated pipeline from live data ingestion to impact mapping |
 | `GET` | `/api/v1/health` | Comprehensive API, database, and operational data source health check |
 
 *Interactive Swagger documentation is available at `/docs`.*

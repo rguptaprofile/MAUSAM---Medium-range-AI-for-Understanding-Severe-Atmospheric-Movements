@@ -1,6 +1,6 @@
 """
 MAUSAM Data Sources Package (SIH26078).
-Exposes real NCMRWF NEPS-G, NCUM-G, ERA5 Climatology, IMDAA, IMD, ECMWF, and HighRes connectors.
+Exposes real NCMRWF NEPS-G, NCUM-G, ERA5 Climatology, IMDAA, IMD, ECMWF, NOAA GFS, GPM IMERG, and HighRes connectors.
 """
 from .base_connector import BaseDataSourceConnector
 from .neps_g_connector import NEPSGConnector
@@ -9,6 +9,8 @@ from .era5_baseline_connector import ERA5BaselineConnector
 from .imdaa_connector import IMDAAConnector
 from .imd_api_connector import IMDAPIConnector
 from .ecmwf_open_connector import ECMWFOpenConnector
+from .noaa_gfs_connector import NOAAGFSConnector
+from .gpm_imerg_connector import GPMIMERGConnector
 from .highres_regional_connector import HighResRegionalConnector
 
 # Global singleton connectors
@@ -18,6 +20,8 @@ era5_baseline_source = ERA5BaselineConnector()
 imdaa_source = IMDAAConnector()
 imd_api_source = IMDAPIConnector()
 ecmwf_open_source = ECMWFOpenConnector()
+noaa_gfs_source = NOAAGFSConnector()
+gpm_imerg_source = GPMIMERGConnector()
 highres_source = HighResRegionalConnector()
 
 ALL_CONNECTORS = {
@@ -27,6 +31,8 @@ ALL_CONNECTORS = {
     "imdaa": imdaa_source,
     "imd_api": imd_api_source,
     "ecmwf_benchmark": ecmwf_open_source,
+    "noaa_gfs": noaa_gfs_source,
+    "gpm_imerg": gpm_imerg_source,
     "highres_regional": highres_source
 }
 

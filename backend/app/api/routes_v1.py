@@ -11,11 +11,15 @@ from fastapi import APIRouter, HTTPException, Query, Body, UploadFile, File
 from datetime import datetime
 
 from ..database.mongo import db
-from ..data_sources import get_all_sources_status, neps_g_source, ncum_g_source
+from ..data_sources import (
+    get_all_sources_status, neps_g_source, ncum_g_source,
+    imd_api_source, noaa_gfs_source, gpm_imerg_source, ecmwf_open_source
+)
 from ..data_pipeline import AtmosphericIngestionPipeline
 from ..core.pipeline import MausamPipeline
 from ..registry import model_registry, policy_registry
 from ..training import verification_engine, continual_learning_engine, CanonicalDatasetBuilder
+
 
 logger = logging.getLogger("mausam.api.v1")
 
@@ -219,9 +223,115 @@ def api_v1_health() -> Dict[str, Any]:
     all_online = all(s["status"] in ["ONLINE", "VALIDATED"] for s in sources if s.get("is_primary"))
     return {
         "status": "healthy" if all_online else "degraded",
-        "api_version": "v1.0.0",
+        "api_version": "v1.2.0",
         "database": db.get_status(),
         "primary_source_health": neps_g_source.quality_status,
         "continual_learning_status": "ONLINE",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+# ============================================================================
+# OFFICIAL IMD API INTEGRATION ENDPOINTS
+# ============================================================================
+
+# 14. GET /api/v1/imd/current-weather
+@v1_router.get("/imd/current-weather")
+def get_imd_current_weather(station: Optional[str] = None) -> Dict[str, Any]:
+    """Retrieves official IMD real-time synoptic weather observations across Indian stations."""
+    data = imd_api_source.fetch_current_wx(station_name=station)
+    return {
+        "status": "success",
+        "provider": imd_api_source.provider,
+        "endpoint": "https://api.imd.gov.in/api/v1/current_wx",
+        "count": len(data),
+        "data": data
+    }
+
+# 15. GET /api/v1/imd/city-forecast
+@v1_router.get("/imd/city-forecast")
+def get_imd_city_forecast(city: str = Query("Bhubaneswar", description="Indian City Name")) -> Dict[str, Any]:
+    """Retrieves official IMD 7-Day City Weather Forecast."""
+    return imd_api_source.fetch_city_forecast_7d(city_name=city)
+
+# 16. GET /api/v1/imd/aws-data
+@v1_router.get("/imd/aws-data")
+def get_imd_aws_data(state: Optional[str] = Query(None, description="State Name (optional)")) -> Dict[str, Any]:
+    """Retrieves official IMD Automatic Weather Station (AWS) and Rain Gauge (ARG) telemetry."""
+    data = imd_api_source.fetch_aws_arg_data(state=state)
+    return {
+        "status": "success",
+        "provider": imd_api_source.provider,
+        "endpoint": "https://api.imd.gov.in/api/v1/aws_data",
+        "stations_count": len(data),
+        "records": data
+    }
+
+# 17. GET /api/v1/imd/district-nowcast
+@v1_router.get("/imd/district-nowcast")
+def get_imd_district_nowcast(district: Optional[str] = Query(None, description="District Name (optional)")) -> Dict[str, Any]:
+    """Retrieves official IMD 3-hour severe weather nowcast warnings by district."""
+    data = imd_api_source.fetch_district_nowcast(district=district)
+    return {
+        "status": "success",
+        "provider": imd_api_source.provider,
+        "endpoint": "https://api.imd.gov.in/api/v1/districtnowcast",
+        "count": len(data),
+        "nowcasts": data
+    }
+
+# 18. GET /api/v1/imd/district-warning
+@v1_router.get("/imd/district-warning")
+def get_imd_district_warning(district: Optional[str] = Query(None, description="District Name (optional)")) -> Dict[str, Any]:
+    """Retrieves official IMD 5-day colour-coded district weather warnings (GREEN/YELLOW/ORANGE/RED)."""
+    data = imd_api_source.fetch_district_warning(district=district)
+    return {
+        "status": "success",
+        "provider": imd_api_source.provider,
+        "endpoint": "https://api.imd.gov.in/api/v1/districtwarning",
+        "count": len(data),
+        "warnings": data
+    }
+
+# 19. GET /api/v1/imd/cyclone-track
+@v1_router.get("/imd/cyclone-track")
+def get_imd_cyclone_track() -> Dict[str, Any]:
+    """Retrieves official IMD tropical cyclone monitoring bulletins, predicted tracks, and coastal warnings."""
+    return imd_api_source.fetch_cyclone_track()
+
+# ============================================================================
+# 11-STAGE PIPELINE FLOW ARCHITECTURE & EXECUTION
+# ============================================================================
+
+# 20. GET /api/v1/pipeline/flow
+@v1_router.get("/pipeline/flow")
+def get_pipeline_flow_architecture() -> Dict[str, Any]:
+    """Returns the comprehensive 11-Stage Meteorological AI Pipeline Architecture specification."""
+    return {
+        "title": "MAUSAM 11-Stage Extreme Weather Tracking & Downscaling Pipeline",
+        "total_stages": 11,
+        "stages": [
+            {"stage": 1, "name": "DATA INGESTION", "tool": "Xarray / Dask", "role": "Lazy-loading NEPS-G / NCUM-G / GFS 12km grids"},
+            {"stage": 2, "name": "PREPROCESSING", "tool": "MeteorologicalNormalizer", "role": "Clean, align variables, units (Kelvin->C, Pa->hPa) and timestamps"},
+            {"stage": 3, "name": "ENSEMBLE DATA", "tool": "EnsembleAggregator", "role": "Many possible futures: 21 ensemble members mean, spread, and quantiles"},
+            {"stage": 4, "name": "ANOMALY DETECTION", "tool": "SpatialOutlierScanner", "role": "Find unusual regions exceeding extreme threshold limits"},
+            {"stage": 5, "name": "EFI (EXTREME FORECAST INDEX)", "tool": "ECMWF_EFI_Calculator", "role": "How unusual? CDF integration vs 30-year ERA5 climatology"},
+            {"stage": 6, "name": "GNN TRACKING", "tool": "SphericalGNNModel", "role": "Where is it moving? Message passing on icosahedral geodesic mesh"},
+            {"stage": 7, "name": "DYNAMIC CROP", "tool": "SpatioTemporalBoundingBox", "role": "Focus only on event region across 3-10 days lead times"},
+            {"stage": 8, "name": "DIFFUSION DOWNSCALING", "tool": "ConditionalDiffusionModel", "role": "12 km -> 5 km finer detail preserving extreme tail amplitudes"},
+            {"stage": 9, "name": "PHYSICS CHECK", "tool": "AtmosphericPhysicsEngine", "role": "Is result physically sane? Geostrophic, hydrostatic, moisture checks"},
+            {"stage": 10, "name": "VALIDATION", "tool": "VerificationEngine", "role": "Compare with reference data: IMD AWS/ARG & NASA GPM IMERG"},
+            {"stage": 11, "name": "IMPACT MAP", "tool": "DynamicImpactPolicyEngine", "role": "Location + time severity + alert payload + uncertainty envelope"}
+        ],
+        "dissemination": ["Interactive Dashboard (UI)", "Production REST API v1"]
+    }
+
+# 21. POST /api/v1/pipeline/run-full
+@v1_router.post("/pipeline/run-full")
+def execute_full_11_stage_pipeline(mode: str = Query("live", description="Execution mode: live or demo")) -> Dict[str, Any]:
+    """Triggers the full 11-stage automated pipeline from live data ingestion to impact mapping."""
+    try:
+        return pipeline.run_full_pipeline(mode=mode)
+    except Exception as e:
+        logger.error(f"Error during 11-stage pipeline run: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

@@ -82,4 +82,20 @@ class AlertPolicyRegistry:
         else:
             return "LOW", round(adjusted_prob, 3), f"Advisory level anomaly within LOW operational response envelope."
 
+    def evaluate_action(self, efi: float, severity: str) -> str:
+        """
+        Determines the recommended disaster management protocol action
+        based on EFI score and severity classification.
+        """
+        sev = str(severity).upper()
+        if sev in ["SEVERE", "RED"] or efi >= 0.80:
+            return "Issue Immediate District Red Alert: Evacuate vulnerable low-lying zones, suspend marine and offshore operations, pre-position NDRF/SDRF emergency battalions."
+        elif sev in ["MODERATE", "ORANGE"] or efi >= 0.60:
+            return "Issue Orange Preparedness Advisory: Activate district disaster management coordination cells, alert local healthcare and transit authorities, verify flood shelters."
+        elif sev in ["LOW", "YELLOW"] or efi >= 0.40:
+            return "Issue Yellow Watch Bulletin: Monitor medium-range track progression, alert vulnerable agricultural sectors, maintain routine operational surveillance."
+        else:
+            return "Normal Operational Monitoring: Routine synoptic surveillance and multi-member ensemble tracking active."
+
 policy_registry = AlertPolicyRegistry()
+
