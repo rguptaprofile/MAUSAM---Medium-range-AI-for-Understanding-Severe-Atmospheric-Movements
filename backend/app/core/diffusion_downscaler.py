@@ -6,29 +6,40 @@ Preserves high-frequency spatial gradients and extreme value amplitudes,
 directly eliminating the 'spectral smoothing' flaw of standard CNNs/U-Nets.
 Supports both PyTorch and lightweight NumPy/SciPy environments.
 """
-try:
+from typing import TYPE_CHECKING, Dict, Tuple, List, Optional, Any
+
+if TYPE_CHECKING:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
-    HAS_TORCH = True
+    from torch import Tensor
     ModuleBase = nn.Module
-except (ImportError, Exception):
-    torch = None
-    nn = None
-    F = None
-    HAS_TORCH = False
-    class ModuleBase:
-        def __init__(self, *args, **kwargs):
-            pass
-        def __call__(self, *args, **kwargs):
-            return self.forward(*args, **kwargs)
-        def eval(self):
-            pass
+    HAS_TORCH = True
+else:
+    try:
+        import torch
+        import torch.nn as nn
+        import torch.nn.functional as F
+        from torch import Tensor
+        HAS_TORCH = True
+        ModuleBase = nn.Module
+    except (ImportError, Exception):
+        torch = None
+        nn = None
+        F = None
+        Tensor = Any
+        HAS_TORCH = False
+        class ModuleBase:
+            def __init__(self, *args, **kwargs):
+                pass
+            def __call__(self, *args, **kwargs):
+                return self.forward(*args, **kwargs)
+            def eval(self):
+                pass
 
 import numpy as np
 import math
 from scipy.ndimage import zoom
-from typing import Dict, Tuple, List, Optional, Any
 from .physics_loss import AtmosphericPhysicsLoss
 
 class SinusoidalPositionEmbeddings(ModuleBase):

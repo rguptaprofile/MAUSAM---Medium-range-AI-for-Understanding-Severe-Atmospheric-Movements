@@ -5,23 +5,30 @@ Enforces thermodynamic conservation laws, moisture flux convergence,
 geostrophic balance, and non-negativity to ensure scientific plausibility.
 Supports both PyTorch GPU/CPU and lightweight NumPy/SciPy environments.
 """
-try:
+from typing import TYPE_CHECKING, Dict, Tuple, Any
+
+if TYPE_CHECKING:
     import torch
     import torch.nn as nn
     HAS_TORCH = True
     ModuleBase = nn.Module
-except (ImportError, Exception):
-    torch = None
-    nn = None
-    HAS_TORCH = False
-    class ModuleBase:
-        def __init__(self, *args, **kwargs):
-            pass
-        def __call__(self, *args, **kwargs):
-            return self.forward(*args, **kwargs)
+else:
+    try:
+        import torch
+        import torch.nn as nn
+        HAS_TORCH = True
+        ModuleBase = nn.Module
+    except (ImportError, Exception):
+        torch = None
+        nn = None
+        HAS_TORCH = False
+        class ModuleBase:
+            def __init__(self, *args, **kwargs):
+                pass
+            def __call__(self, *args, **kwargs):
+                return self.forward(*args, **kwargs)
 
 import numpy as np
-from typing import Dict, Tuple, Any
 
 class AtmosphericPhysicsLoss(ModuleBase):
     def __init__(self, omega: float = 7.2921e-5, g: float = 9.80665, grid_spacing_km: float = 5.0):

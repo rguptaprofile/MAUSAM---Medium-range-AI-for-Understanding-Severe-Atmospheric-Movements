@@ -5,25 +5,35 @@ Executes message passing on an icosahedral mesh to isolate extreme weather anoma
 via the Extreme Forecast Index (EFI) and computes dynamic 4D spatio-temporal bounding boxes.
 Supports both PyTorch and lightweight NumPy/SciPy environments.
 """
-try:
+from typing import TYPE_CHECKING, Dict, List, Tuple, Any
+
+if TYPE_CHECKING:
     import torch
     import torch.nn as nn
+    from torch import Tensor
     HAS_TORCH = True
     ModuleBase = nn.Module
-except (ImportError, Exception):
-    torch = None
-    nn = None
-    HAS_TORCH = False
-    class ModuleBase:
-        def __init__(self, *args, **kwargs):
-            pass
-        def __call__(self, *args, **kwargs):
-            return self.forward(*args, **kwargs)
-        def eval(self):
-            pass
+else:
+    try:
+        import torch
+        import torch.nn as nn
+        from torch import Tensor
+        HAS_TORCH = True
+        ModuleBase = nn.Module
+    except (ImportError, Exception):
+        torch = None
+        nn = None
+        Tensor = Any
+        HAS_TORCH = False
+        class ModuleBase:
+            def __init__(self, *args, **kwargs):
+                pass
+            def __call__(self, *args, **kwargs):
+                return self.forward(*args, **kwargs)
+            def eval(self):
+                pass
 
 import numpy as np
-from typing import Dict, List, Tuple, Any
 from .spherical_mesh import IcosahedralMesh
 from datetime import datetime, timedelta
 
