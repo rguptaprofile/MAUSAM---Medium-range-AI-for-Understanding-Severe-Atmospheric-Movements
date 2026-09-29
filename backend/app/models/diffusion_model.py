@@ -158,7 +158,7 @@ class ConditionalDiffusionModel:
         )
 
         # 5. Dynamic Calibrated Impact Radius (km)
-        hazard_threshold = 30.0 if variable_type in ["precipitation", "precip"] else 15.0
+        hazard_threshold = 30.0 if variable_type in ["precipitation", "precip"] else (45.0 if variable_type in ["temperature", "t2m"] else 15.0)
         exceedance_mask = (p90_field >= hazard_threshold)
         num_exceeding_cells = int(np.sum(exceedance_mask))
 

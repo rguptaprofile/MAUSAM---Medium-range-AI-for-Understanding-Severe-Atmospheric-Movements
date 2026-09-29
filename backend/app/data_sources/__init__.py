@@ -12,6 +12,7 @@ from .ecmwf_open_connector import ECMWFOpenConnector
 from .noaa_gfs_connector import NOAAGFSConnector
 from .gpm_imerg_connector import GPMIMERGConnector
 from .highres_regional_connector import HighResRegionalConnector
+from .raw_netcdf_connector import RawNetCDFConnector, raw_netcdf_source
 
 # Global singleton connectors
 neps_g_source = NEPSGConnector()
@@ -33,7 +34,8 @@ ALL_CONNECTORS = {
     "ecmwf_benchmark": ecmwf_open_source,
     "noaa_gfs": noaa_gfs_source,
     "gpm_imerg": gpm_imerg_source,
-    "highres_regional": highres_source
+    "highres_regional": highres_source,
+    "raw_netcdf": raw_netcdf_source
 }
 
 def get_all_sources_status():
@@ -42,3 +44,4 @@ def get_all_sources_status():
     for key, conn in ALL_CONNECTORS.items():
         status_report.append(conn.health_check())
     return status_report
+

@@ -120,6 +120,15 @@
               </div>
             </button>
 
+            <!-- Real Operational NetCDF Dataset (data/raw.nc) -->
+            <button class="scenario-btn" data-scenario="raw_netcdf_heatwave">
+              <i class="fa-solid fa-fire-flame-curved text-danger"></i>
+              <div>
+                <strong class="text-danger">Real NetCDF: May 2024 Heatwave</strong>
+                <small>data/raw.nc Reanalysis (51.6°C Peak)</small>
+              </div>
+            </button>
+
             <!-- Historical Benchmarks (Explicitly Labeled DEMO) -->
             <button class="scenario-btn" data-scenario="cyclone_amphan">
               <i class="fa-solid fa-hurricane"></i>
@@ -415,6 +424,9 @@
       <div class="modal-footer">
         <button class="btn btn-warning" id="btn-trigger-self-training">
           <i class="fa-solid fa-arrows-rotate"></i> Ingest Stream & Retrain Candidate
+        </button>
+        <button class="btn btn-primary" id="btn-train-raw-nc">
+          <i class="fa-solid fa-database"></i> Train on data/raw.nc
         </button>
         <button class="btn btn-secondary" id="btn-close-continual-ok">Close</button>
       </div>

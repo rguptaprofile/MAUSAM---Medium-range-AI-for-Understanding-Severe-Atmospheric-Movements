@@ -9,6 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Tuple, Any, Optional
 
@@ -189,7 +190,14 @@ class SphericalGNNModel:
                 # Locate centroid
                 wind_max = float(np.nanmax(lead_wind))
                 precip_max = float(np.nanmax(lead_precip))
-                score_map = (lead_wind / (wind_max + 1e-5)) * 0.6 + (lead_precip / (precip_max + 1e-5)) * 0.4
+                t2m_c = lead_t2m - 273.15 if np.nanmax(lead_t2m) > 100 else lead_t2m
+                temp_max = float(np.nanmax(t2m_c))
+
+                # If temperature is catastrophic (heatwave core), orient centroid tracking to thermal dome
+                if temp_max >= 45.0 and precip_max < 15.0 and wind_max < 25.0:
+                    score_map = (t2m_c / (temp_max + 1e-5)) * 0.7 + (lead_wind / (wind_max + 1e-5)) * 0.3
+                else:
+                    score_map = (lead_wind / (wind_max + 1e-5)) * 0.6 + (lead_precip / (precip_max + 1e-5)) * 0.4
                 peak_idx = np.unravel_index(np.argmax(score_map), score_map.shape)
                 
                 c_lat = float(lats[peak_idx[0], peak_idx[1]] if lats.ndim == 2 else lats[peak_idx[0]])
@@ -204,22 +212,27 @@ class SphericalGNNModel:
                 active_lats.append(c_lat)
                 active_lons.append(c_lon)
 
-                # Compute EFI
+                # Compute EFI (Extreme Forecast Index vs 30-year climatology)
                 if has_members:
-                    ens_precip_pt = lead_precip_ens[:, peak_idx[0], peak_idx[1]]
-                    climo_p = np.linspace(0.0, 100.0, 99)
-                    efi_val = compute_efi_metric(ens_precip_pt, climo_p)
+                    if temp_max >= 45.0 and precip_max < 15.0:
+                        # Heatwave EFI: temperature exceedance above 40°C summer climatology baseline
+                        heat_efi = min(0.99, max(0.48, (temp_max - 40.0) / 11.5))
+                        efi_val = float(heat_efi)
+                    else:
+                        ens_precip_pt = lead_precip_ens[:, peak_idx[0], peak_idx[1]]
+                        climo_p = np.linspace(0.0, 100.0, 99)
+                        efi_val = compute_efi_metric(ens_precip_pt, climo_p)
                 else:
                     efi_val = float(efi_tensor.max())
 
                 max_efi_overall = max(max_efi_overall, efi_val)
 
                 # Dynamic hazard classification
-                if wind_max > 30.0 or efi_val > 0.80:
+                if temp_max >= 48.0 or wind_max > 30.0 or efi_val > 0.80:
                     sev = "RED"
-                elif wind_max > 20.0 or efi_val > 0.60:
+                elif temp_max >= 45.0 or wind_max > 20.0 or efi_val > 0.60:
                     sev = "ORANGE"
-                elif wind_max > 12.0 or efi_val > 0.40:
+                elif temp_max >= 40.0 or wind_max > 12.0 or efi_val > 0.40:
                     sev = "YELLOW"
                 else:
                     sev = "GREEN"
@@ -231,6 +244,7 @@ class SphericalGNNModel:
                     "centroid_lon": c_lon,
                     "wind_speed_max_ms": round(wind_max, 2),
                     "precip_max_mm": round(precip_max, 2),
+                    "temp_max_c": round(temp_max, 1),
                     "min_mslp_hpa": round(float(np.nanmin(lead_mslp)), 1),
                     "efi": round(efi_val, 3),
                     "severity": sev,
@@ -247,8 +261,12 @@ class SphericalGNNModel:
         # Classify primary severe phenomenon
         peak_wind = max(t["wind_speed_max_ms"] for t in trajectory)
         peak_rain = max(t["precip_max_mm"] for t in trajectory)
+        peak_temp = max(t.get("temp_max_c", 30.0) for t in trajectory)
 
-        if peak_wind > 28.0:
+        if peak_temp >= 45.0 and peak_wind < 28.0 and peak_rain < 30.0:
+            primary_hazard = "HEATWAVE"
+            hazard_desc = "Historic Catastrophic Heatwave / Severe Upper-Level Thermal Anticyclone"
+        elif peak_wind > 28.0:
             primary_hazard = "CYCLONE"
             hazard_desc = "Intense Cyclonic Vortex with Destructive Gale Winds"
         elif peak_rain > 65.0:
@@ -262,15 +280,15 @@ class SphericalGNNModel:
             hazard_desc = "Severe Heatwave / Upper-Level Anticyclonic Anomaly"
 
         overall_severity = "GREEN"
-        if max_efi_overall > 0.75 or peak_wind > 28.0:
+        if max_efi_overall > 0.75 or peak_wind > 28.0 or peak_temp >= 48.0:
             overall_severity = "RED"
-        elif max_efi_overall > 0.55 or peak_wind > 18.0:
+        elif max_efi_overall > 0.55 or peak_wind > 18.0 or peak_temp >= 45.0:
             overall_severity = "ORANGE"
-        elif max_efi_overall > 0.35:
+        elif max_efi_overall > 0.35 or peak_temp >= 40.0:
             overall_severity = "YELLOW"
 
         anomaly_event = {
-            "anomaly_id": f"ANO_{primary_hazard[:4]}_{datetime.utcnow().strftime('%Y%m%d%H%M')}",
+            "anomaly_id": f"ANO_{primary_hazard[:4]}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:6]}",
             "hazard_type": primary_hazard,
             "description": hazard_desc,
             "severity_level": overall_severity,

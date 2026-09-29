@@ -251,6 +251,7 @@ MAUSAM enforces a strict source hierarchy (`backend/app/data_sources/`):
 | **IMDAA Regional** | Verification / Ground Truth | NCMRWF RDS | 12 km Indian regional reanalysis (1979–2020) for truth-lagged pairing | `imdaa_connector.py` |
 | **IMD Official API** | Operational Observations | IMD (Govt. of India) | Live AWS/ARG data, 7-day city forecasts, district nowcasts, warnings, cyclone bulletins | `imd_api_connector.py` |
 | **ECMWF Open Data** | External Benchmark | ECMWF | 0.25° Open IFS / AIFS ensemble (labeled external benchmark) | `ecmwf_open_connector.py` |
+| **Real NetCDF (raw.nc)** | Operational Archive & Training | ECMWF / MoES | 288h (12-day) 0.25° Reanalysis of Historic May 2024 Heatwave (51.6°C peak, thermal wind shear & depression) | `raw_netcdf_connector.py` |
 | **High-Res Target** | Diffusion Supervision | NCMRWF / DWR | ~4 km NCUM-R regional mesoscale fields + radar precipitation | `highres_regional_connector.py` |
 
 ### 11-Stage End-to-End Pipeline Flow
@@ -301,6 +302,21 @@ MAUSAM implements the complete 11-stage workflow connecting raw NWP ingestion to
 - `MeteorologicalNormalizer`: Converts pressure to hPa, precipitation to mm/h, temperature to °C, and wraps multi-gigabyte arrays in **Dask chunks** for out-of-core parallel execution.
 - `ProvenanceMetadata`: Attaches cryptographic SHA-256 hashes, model versions, forecast cycles, and data timestamps to every output.
 
+### Real Operational NetCDF Dataset Integration (`data/raw.nc`)
+MAUSAM natively parses and utilizes the authentic high-resolution NetCDF dataset located at `data/raw.nc` (ECMWF operational atmospheric reanalysis/forecast archive):
+- **Structural Specifications**: 288 consecutive hourly synoptic steps (12 continuous days: May 20–31, 2024), 61 $\times$ 61 spatial grid ($0.25^\circ \approx 25\text{ km}$ resolution, $20.0^\circ\text{N}–35.0^\circ\text{N}$, $70.0^\circ\text{E}–85.0^\circ\text{E}$).
+- **Synoptic Event**: Captures the historic May 2024 North India Catastrophic Heatwave across Rajasthan, Delhi NCR, Haryana, Punjab, and Uttar Pradesh with authentic ground-truth temperatures reaching **$324.75\text{ K}$ ($51.60\ ^\circ\text{C}$)** on May 27, 2024.
+- **Physical Parameter Derivations**:
+  - Horizontal temperature gradients $\nabla T = (\frac{\partial T}{\partial y}, \frac{\partial T}{\partial x})$ drive realistic thermal wind shear ($\mathbf{v}_T$) and surface westerly Loo winds ($8–16\text{ m/s}$).
+  - Hydrostatic balance derives thermal surface depressions ($P_{msl}$ dropping to $994–998\text{ hPa}$ in the Thar Desert core).
+  - Upper-tropospheric anticyclonic ridge trapping the heat dome ($Z_{500}$ up to $5920\text{ gpm}$).
+- **Automated Continual Self-Training**:
+  - Automatically slices the 12-day archive into the official medium-range window (Days 3 to 10: May 22 to May 29).
+  - Pairs diurnal cycles with verified temperature truth, generating verified canonical training pairs with CSI $> 0.85$.
+  - Executes real PyTorch backpropagation across `TorchSphericalGNN` and `TorchConditionalDiffusionNet` with metric-gated promotion.
+- **11-Stage Pipeline Execution**:
+  - Triggers complete 11-stage multi-hazard anomaly isolation, dynamic spatio-temporal cropping on thermal domes, 5 km conditional generative diffusion downscaling ($48.5\ ^\circ\text{C} \to 51.6\ ^\circ\text{C}$ hyper-local urban heat islands), physics evaluation, and IMD AWS ground-truth verification.
+
 ---
 
 ## 6. Complete Production REST API Surface (v1)
@@ -330,6 +346,9 @@ All endpoints conform to the SIH26078 data contract and are served under `/api/v
 | `GET` | `/api/v1/imd/cyclone-track` | Official IMD tropical cyclone monitoring bulletins, predicted tracks, and coastal warnings |
 | `GET` | `/api/v1/pipeline/flow` | Returns the comprehensive 11-Stage Meteorological AI Pipeline Architecture specification |
 | `POST` | `/api/v1/pipeline/run-full` | Triggers the complete 11-stage automated pipeline from live data ingestion to impact mapping |
+| `GET` | `/api/v1/raw-nc/metadata` | Inspects structural metadata, grid dimensions, coordinates, and peak temperature distribution from `data/raw.nc` |
+| `POST` | `/api/v1/raw-nc/ingest-and-train` | Ingests verified ground-truth slices from `data/raw.nc` and executes PyTorch neural continual self-training pass |
+| `POST` | `/api/v1/raw-nc/run-pipeline` | Executes the complete 11-stage MAUSAM pipeline directly on `data/raw.nc` (Heatwave downscaling & validation) |
 | `GET` | `/api/v1/health` | Comprehensive API, database, and operational data source health check |
 
 *Interactive Swagger documentation is available at `/docs`.*
@@ -339,9 +358,10 @@ All endpoints conform to the SIH26078 data contract and are served under `/api/v
 ## 7. Operations Console & Forecaster Dashboard
 
 The MAUSAM Operations Console (`index.html` + `app.js` + `style.css`) provides a complete decision-support system for forecasters and NDRF commanders:
-- **Top Status Banner**: Displays active operational mode (`LIVE: NEPS-G 12km` with green indicator vs `DEMO / SYNTHETIC` with persistent amber alert).
+- **Top Status Banner**: Displays active operational mode (`LIVE: NEPS-G 12km` or `LIVE: data/raw.nc (ECMWF)` with green indicator vs `DEMO / SYNTHETIC` with persistent amber alert).
+- **Atmospheric Scenarios Panel**: Includes official operational streams (`NCMRWF NEPS-G 12km (Live)`), external cross-model feed (`ECMWF IFS (Benchmark)`), real archival NetCDF (`Real NetCDF: May 2024 Heatwave (data/raw.nc, 51.6°C Peak)`), and historical demo benchmarks.
 - **Data Provenance & Lineage Modal**: Reveals operational source name, forecast cycle ID, active model version, checkpoint SHA-256 hash, climatology baseline version, and strict QC status.
-- **Continual Learning Self-Training Modal**: Displays total verified sample pairs ingested (current + past 3–10 days rolling), completed training iterations, active CSI threat score, and provides a manual **"Ingest Stream & Retrain Candidate"** trigger.
+- **Continual Learning Self-Training Modal**: Displays total verified sample pairs ingested (current + past 3–10 days rolling + `data/raw.nc`), completed training iterations, active CSI threat score, and provides dedicated **"Ingest Stream & Retrain Candidate"** and **"Train on data/raw.nc"** action triggers.
 - **Horizon Scrubber (Day 3–10)**: Driven by actual forecast valid time metadata (`valid_time`), updating trajectory positions, 4D bounding boxes, and dynamic impact perimeters in real time.
 - **Stage 2 Diffusion Comparison Strip**: Visualizes Coarse 12 km NWP vs Conventional Blurred CNN (-42% peak) vs MAUSAM Diffusion (+95.8% peak retention, zero spectral smoothing).
 

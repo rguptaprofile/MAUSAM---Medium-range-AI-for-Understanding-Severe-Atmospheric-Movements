@@ -13,7 +13,8 @@ from datetime import datetime
 from ..database.mongo import db
 from ..data_sources import (
     get_all_sources_status, neps_g_source, ncum_g_source,
-    imd_api_source, noaa_gfs_source, gpm_imerg_source, ecmwf_open_source
+    imd_api_source, noaa_gfs_source, gpm_imerg_source, ecmwf_open_source,
+    raw_netcdf_source
 )
 from ..data_pipeline import AtmosphericIngestionPipeline
 from ..core.pipeline import MausamPipeline
@@ -334,4 +335,55 @@ def execute_full_11_stage_pipeline(mode: str = Query("live", description="Execut
     except Exception as e:
         logger.error(f"Error during 11-stage pipeline run: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# REAL NETCDF DATASET (data/raw.nc) INTEGRATION ENDPOINTS
+# ============================================================================
+
+# 22. GET /api/v1/raw-nc/metadata
+@v1_router.get("/raw-nc/metadata")
+def get_raw_netcdf_metadata() -> Dict[str, Any]:
+    """Inspects structural metadata, spatial boundaries, time slices, and peak heat statistics from data/raw.nc."""
+    meta = raw_netcdf_source.inspect_dataset_metadata()
+    if "error" in meta:
+        raise HTTPException(status_code=404, detail=meta["error"])
+    return {
+        "status": "success",
+        "provider": raw_netcdf_source.provider,
+        "metadata": meta
+    }
+
+# 23. POST /api/v1/raw-nc/ingest-and-train
+@v1_router.post("/raw-nc/ingest-and-train")
+def ingest_raw_nc_and_train(nc_path: str = Query("data/raw.nc", description="Path to NetCDF file")) -> Dict[str, Any]:
+    """
+    Ingests ground truth slices from data/raw.nc into the continual learning database
+    and executes PyTorch backpropagation retraining across GNN and Conditional Diffusion.
+    """
+    try:
+        report = continual_learning_engine.ingest_raw_netcdf_dataset(nc_path=nc_path)
+        return {
+            "status": "success",
+            "message": "Successfully ingested data/raw.nc and executed neural continual learning cycle",
+            "report": report
+        }
+    except Exception as e:
+        logger.error(f"Error ingesting and training on {nc_path}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 24. POST /api/v1/raw-nc/run-pipeline
+@v1_router.post("/raw-nc/run-pipeline")
+def run_pipeline_on_raw_netcdf() -> Dict[str, Any]:
+    """Executes the complete 11-stage MAUSAM pipeline directly on data/raw.nc."""
+    try:
+        result = pipeline.run_full_pipeline(scenario_type="raw_netcdf", mode="live")
+        return {
+            "status": "success",
+            "message": "Executed 11-Stage Pipeline directly on real operational NetCDF dataset (data/raw.nc)",
+            "pipeline_summary": result
+        }
+    except Exception as e:
+        logger.error(f"Error running pipeline on raw NetCDF: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 

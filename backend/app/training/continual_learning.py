@@ -14,6 +14,7 @@ import json
 import logging
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torch.optim as optim
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
@@ -105,14 +106,41 @@ class TruthLaggedContinualLearningEngine:
                         )
                         new_samples_count += 1
 
+        # 3. Automatically ingest real historical NetCDF datasets if available
+        if os.path.exists("data/raw.nc"):
+            nc_samples = self.dataset_builder.build_samples_from_raw_nc("data/raw.nc")
+            new_samples_count += len(nc_samples)
+
         total_samples = db.training_samples.count_documents({})
         logger.info(f"Stream ingestion complete: {new_samples_count} new verified pairs added. Total store size: {total_samples}")
         return {
             "new_samples_ingested": new_samples_count,
             "total_verified_samples": total_samples,
-            "days_window": f"3 to {days_back} Days Historical + Current Live",
+            "days_window": f"3 to {days_back} Days Historical + Current Live + Real NetCDF (data/raw.nc)",
             "timestamp": now.isoformat()
         }
+
+    def ingest_raw_netcdf_dataset(self, nc_path: str = "data/raw.nc") -> Dict[str, Any]:
+        """
+        Natively ingests real NetCDF dataset (data/raw.nc) into the verified continual learning store
+        and runs a full neural parameter optimization step with metric-gated promotion.
+        """
+        nc_samples = self.dataset_builder.build_samples_from_raw_nc(nc_path)
+        total_samples = db.training_samples.count_documents({})
+        logger.info(f"Ingested {len(nc_samples)} verified samples from {nc_path}. Total store size: {total_samples}")
+
+        # Execute candidate neural training pass on real data
+        train_result = self.train_candidate_weights()
+
+        return {
+            "status": "COMPLETED",
+            "source_dataset": nc_path,
+            "new_samples_added": len(nc_samples),
+            "total_verified_samples": total_samples,
+            "training_result": train_result,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+
 
     def train_candidate_weights(self) -> Dict[str, Any]:
         """

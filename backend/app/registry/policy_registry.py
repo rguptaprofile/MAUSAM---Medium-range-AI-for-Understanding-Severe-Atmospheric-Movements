@@ -82,12 +82,24 @@ class AlertPolicyRegistry:
         else:
             return "LOW", round(adjusted_prob, 3), f"Advisory level anomaly within LOW operational response envelope."
 
-    def evaluate_action(self, efi: float, severity: str) -> str:
+    def evaluate_action(self, efi: float, severity: str, hazard_type: str = "CYCLONE") -> str:
         """
         Determines the recommended disaster management protocol action
-        based on EFI score and severity classification.
+        based on EFI score, severity classification, and specific hazard type.
         """
         sev = str(severity).upper()
+        h_type = str(hazard_type).upper()
+
+        if h_type in ["HEATWAVE", "HOT"]:
+            if sev in ["SEVERE", "RED"] or efi >= 0.80:
+                return "Issue Immediate District Red Alert for Extreme Heatwave: Activate Heat Action Plan (HAP), open public cooling shelters, ensure emergency hydration and power grid stability, suspend non-essential outdoor labor between 11:00 AM and 4:00 PM."
+            elif sev in ["MODERATE", "ORANGE"] or efi >= 0.60:
+                return "Issue Orange Heatwave Preparedness Advisory: Alert public health clinics for heatstroke admissions, issue municipal water supply advisories, protect vulnerable agricultural livestock."
+            elif sev in ["LOW", "YELLOW"] or efi >= 0.40:
+                return "Issue Yellow Heatwave Watch: Advise daytime shade precautions, monitor local wet-bulb temperatures."
+            else:
+                return "Normal Heat Vigilance: Ambient summer conditions within standard monitoring limits."
+
         if sev in ["SEVERE", "RED"] or efi >= 0.80:
             return "Issue Immediate District Red Alert: Evacuate vulnerable low-lying zones, suspend marine and offshore operations, pre-position NDRF/SDRF emergency battalions."
         elif sev in ["MODERATE", "ORANGE"] or efi >= 0.60:
